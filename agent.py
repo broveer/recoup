@@ -15,8 +15,10 @@ from models import (
 )
 
 
+import re
+
 class RecoveryAgent:
-    def __init__(self, model_name: str = "llama3.2", host: str = "http://localhost:11434"):
+    def __init__(self, model_name: str = "granite4.1:8b", host: str = "http://localhost:11434"):
         self.model_name = model_name
         self.host = host
 
@@ -63,7 +65,7 @@ class RecoveryAgent:
     def decide(self, context: FailedPaymentContext) -> AgentDecision:
         """Analyzes context and produces structured AgentDecision via Ollama or heuristic fallback."""
         try:
-            with httpx.Client(timeout=httpx.Timeout(1.0, connect=0.5)) as client:
+            with httpx.Client(timeout=httpx.Timeout(60.0, connect=3.0)) as client:
                 payload = {
                     "model": self.model_name,
                     "system": self._build_system_prompt(),
@@ -73,8 +75,11 @@ class RecoveryAgent:
                 }
                 response = client.post(f"{self.host}/api/generate", json=payload)
                 if response.status_code == 200:
-                    raw_json = response.json().get("response", "{}")
-                    data = json.loads(raw_json)
+                    raw_text = response.json().get("response", "{}").strip()
+                    # Strip possible markdown code blocks if returned
+                    clean_json = re.sub(r"^```json\s*", "", raw_text, flags=re.MULTILINE)
+                    clean_json = re.sub(r"^```\s*", "", clean_json, flags=re.MULTILINE).strip()
+                    data = json.loads(clean_json)
                     return AgentDecision(
                         transaction_id=context.transaction_id,
                         recommended_action=RecoveryActionType(data.get("recommended_action", "alternative_payment_link")),
@@ -83,11 +88,10 @@ class RecoveryAgent:
                         backoff_seconds=int(data.get("backoff_seconds", 0)),
                         channel=data.get("channel", context.preferred_channel),
                         customer_message=data.get("customer_message"),
-                        reasoning_summary=data.get("reasoning_summary", "AI analyzed payment context."),
+                        reasoning_summary=data.get("reasoning_summary", "Live AI Agent analyzed payment context."),
                         requires_human_approval=bool(data.get("requires_human_approval", False)),
                     )
         except Exception:
-            # Graceful Heuristic Fallback when Ollama server is offline or unreachable
             pass
 
         return self._heuristic_fallback(context)

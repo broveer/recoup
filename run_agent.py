@@ -19,12 +19,12 @@ from policy import PolicyGuardrailEngine
 console = Console(force_terminal=True, safe_box=True)
 
 
-def run_scenarios():
+def run_scenarios(model_name: str = "granite4.1:8b"):
     console.print("\n[bold cyan]===========================================================[/bold cyan]")
-    console.print("[bold yellow]        🚀 RECOUP v0.1.0 - AI REVENUE RECOVERY AGENT        [/bold yellow]")
+    console.print(f"[bold yellow]   🚀 RECOUP v0.1.0 - LIVE AI AGENT ([green]{model_name}[/green])   [/bold yellow]")
     console.print("[bold cyan]===========================================================[/bold cyan]\n")
 
-    agent = RecoveryAgent(model_name="llama3.2")
+    agent = RecoveryAgent(model_name=model_name)
     
     # 4 Realistic Failure Scenarios
     scenarios = [
