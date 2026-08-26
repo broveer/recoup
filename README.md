@@ -8,39 +8,48 @@ Recoup is an AI-powered revenue recovery system for Indian payment rails (UPI, C
 ---
 
 ## 📅 Versioning Strategy
-We follow a 12-day iterative daily release cycle culminating in the final submission:
-* **Day 1 (Current):** `v0.1.0` — Minimal AI Recovery Agent, Structured Decision Schema & Policy Guardrails
-* **Day 2–11:** `v0.2.0` $\rightarrow$ `v0.11.0` — Synthetic evaluation cohort, Non-AI Baseline, Benchmark metrics, Razorpay Test-Mode integration, Multi-channel execution
+We follow an iterative daily release cycle culminating in the final submission:
+* **Day 1:** `v0.1.0` — Minimal AI Recovery Agent, Structured Decision Schema & Policy Guardrails
+* **Day 2 (Current):** `v0.2.0` — Synthetic Dataset Generator, Competent Non-AI Baseline, Comparative Evaluation Benchmark
+* **Day 3–11:** `v0.3.0` $\rightarrow$ `v0.11.0` — Razorpay Test-Mode integration, Multi-channel execution, Interactive Web Checkout Simulator
 * **Day 12:** `v1.0.0` — Complete Final Submission
 
 ---
 
-## 🏛️ v0.1.0 Architecture
+## 🏛️ v0.2.0 Architecture
 
 ```text
-[Failed Payment Event]
+[Synthetic Dataset (dataset.py)]
+   ├── dev_cohort_50.json (50 cases)
+   └── eval_cohort_100.json (100 held-out cases)
           ↓
-[Context Model (models.py)]
+[Dual Pipeline Evaluation (benchmark.py)]
+   ├── Non-AI Rule Baseline (baseline.py)   <-- Standard static rule table
+   └── Recoup AI Agent (agent.py)           <-- Granite 4.1 8B on RTX GPU
           ↓
-[AI Recovery Agent (agent.py)]  <-- Ollama / Local LLM Reasoning
+[Policy Guardrail Engine (policy.py)]       <-- Deterministic Safety Validation
           ↓
-[Agent Decision JSON] (Action, Recovery Likelihood %, Customer Message, Rationale)
-          ↓
-[Policy Guardrail Engine (policy.py)] <-- Deterministic Financial Safety Rules
-          ↓
-[Enforced Safe Action] (Retry / Nudge / Escalate / Hard Stop)
+[Outcome Simulator & Economic Metrics]
+   ├── Net Revenue Recovered (₹)
+   ├── Recovery Success Rate (%)
+   └── Friction Costs & Policy Violations Prevented
 ```
 
 ---
 
-## 🚀 Quickstart (v0.1.0)
+## 🚀 Quickstart (v0.2.0)
 
 ### 1. Requirements
 * Python 3.10+
 * Dependencies: `pydantic`, `httpx`, `rich`
-* (Optional) [Ollama](https://ollama.ai/) running locally with `llama3.2` or any preferred model.
+* Local GPU / Ollama model (`granite4.1:8b` or heuristic fallback)
 
-### 2. Run the Demo
+### 2. Run the Comparative Benchmark
+```bash
+python benchmark.py
+```
+
+### 3. Run Individual Scenario Inspection
 ```bash
 python run_agent.py
 ```
