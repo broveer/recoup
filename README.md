@@ -10,48 +10,51 @@ Recoup is an AI-powered revenue recovery system for Indian payment rails (UPI, C
 ## 📅 Versioning Strategy
 We follow an iterative daily release cycle culminating in the final submission:
 * **Day 1:** `v0.1.0` — Minimal AI Recovery Agent, Structured Decision Schema & Policy Guardrails
-* **Day 2 (Current):** `v0.2.0` — Synthetic Dataset Generator, Competent Non-AI Baseline, Comparative Evaluation Benchmark
-* **Day 3–11:** `v0.3.0` $\rightarrow$ `v0.11.0` — Razorpay Test-Mode integration, Multi-channel execution, Interactive Web Checkout Simulator
+* **Day 2:** `v0.2.0` — Synthetic Dataset Generator, Competent Non-AI Baseline, Comparative Evaluation Benchmark
+* **Day 3 (Current):** `v0.3.0` — Razorpay Test-Mode Connector, Live Webhook Receiver (`payment.failed`), 1-Click Payment Link Generator
+* **Day 4–11:** `v0.4.0` $\rightarrow$ `v0.11.0` — Multi-channel execution, Interactive Web Checkout Simulator, Human Escalation Dashboard
 * **Day 12:** `v1.0.0` — Complete Final Submission
 
 ---
 
-## 🏛️ v0.2.0 Architecture
+## 🏛️ v0.3.0 Architecture
 
 ```text
-[Synthetic Dataset (dataset.py)]
-   ├── dev_cohort_50.json (50 cases)
-   └── eval_cohort_100.json (100 held-out cases)
+[Razorpay Checkout Failure]
           ↓
-[Dual Pipeline Evaluation (benchmark.py)]
-   ├── Non-AI Rule Baseline (baseline.py)   <-- Standard static rule table
-   └── Recoup AI Agent (agent.py)           <-- Granite 4.1 8B on RTX GPU
+[POST /webhook/razorpay (FastAPI)]  <-- Ingests `payment.failed` webhooks
           ↓
-[Policy Guardrail Engine (policy.py)]       <-- Deterministic Safety Validation
+[Context Assembler & AI Agent]      <-- Granite 4.1 8B on RTX GPU
           ↓
-[Outcome Simulator & Economic Metrics]
-   ├── Net Revenue Recovered (₹)
-   ├── Recovery Success Rate (%)
-   └── Friction Costs & Policy Violations Prevented
+[Deterministic Policy Engine]       <-- Financial Safety Guardrails
+          ↓
+[Razorpay API Client]               <-- Generates 1-click Payment Links (`/v1/payment_links`)
+          ↓
+[Live Audit Stream & Metrics API]   <-- Real-time recovery analytics
 ```
 
 ---
 
-## 🚀 Quickstart (v0.2.0)
+## 🚀 Quickstart (v0.3.0)
 
 ### 1. Requirements
 * Python 3.10+
-* Dependencies: `pydantic`, `httpx`, `rich`
+* Dependencies: `fastapi`, `uvicorn`, `pydantic`, `httpx`, `rich`
 * Local GPU / Ollama model (`granite4.1:8b` or heuristic fallback)
 
-### 2. Run the Comparative Benchmark
+### 2. Start the Live Webhook Server
 ```bash
-python benchmark.py
+python -m uvicorn webhook_server:app --port 8000
 ```
 
-### 3. Run Individual Scenario Inspection
+### 3. Run Live Webhook Ingestion Tests
 ```bash
-python run_agent.py
+python test_live_recovery.py
+```
+
+### 4. Run Comparative Benchmark
+```bash
+python benchmark.py
 ```
 
 ---
