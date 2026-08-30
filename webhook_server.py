@@ -184,13 +184,39 @@ async def handle_razorpay_webhook(request: Request):
         action_result["payment_link"] = plink.model_dump()
         console.print(f"🔗 [bold cyan]Razorpay Payment Link Generated:[/bold cyan] [underline]{plink.short_url}[/underline] ([green]WhatsApp / SMS Dispatched[/green])\n")
 
+    elif verdict.enforced_action == RecoveryActionType.SMART_DUNNING_SCHEDULE:
+        # Create a backup payment link so customer can pay via alternate account if preferred
+        plink: RazorpayPaymentLinkResponse = razorpay_client.create_payment_link(
+            amount_inr=amount_inr,
+            description=f"Backup link for subscription {order_id}",
+            customer_name=cust_name,
+            customer_phone=cust_contact,
+            customer_email=cust_email,
+            notes={"original_tx": tx_id, "recovery_agent": "Recoup-v0.4.0", "strategy": "smart_dunning"},
+        )
+        action_result["status"] = "SCHEDULED_SMART_DUNNING"
+        action_result["scheduled_date"] = "1st of Month (Salary Day 9:00 AM)"
+        action_result["payment_link"] = plink.model_dump()
+        console.print(f"📅 [bold magenta]Smart Dunning Scheduled:[/bold magenta] Auto-debit on {action_result['scheduled_date']}\n")
+        console.print(f"🔗 [bold cyan]Backup Payment Link:[/bold cyan] {plink.short_url} (Dispatched via WhatsApp)\n")
+
     elif verdict.enforced_action == RecoveryActionType.ESCALATE_TO_HUMAN:
         action_result["status"] = "QUEUED_FOR_WHITE_GLOVE_OUTREACH"
         console.print("👤 [bold yellow]High-Value Escalation:[/bold yellow] Routed to White-Glove Merchant Team\n")
 
     elif verdict.enforced_action == RecoveryActionType.IMMEDIATE_STOP:
+        # Generate an 'Update Payment Method' link for hard declines
+        plink: RazorpayPaymentLinkResponse = razorpay_client.create_payment_link(
+            amount_inr=amount_inr,
+            description=f"Update payment method for {order_id}",
+            customer_name=cust_name,
+            customer_phone=cust_contact,
+            customer_email=cust_email,
+            notes={"original_tx": tx_id, "action": "update_card"},
+        )
         action_result["status"] = "AUTOMATED_RECOVERY_HALTED"
-        console.print("🛑 [bold red]Immediate Halt:[/bold red] Hard decline detected. Zero retries executed.\n")
+        action_result["update_link"] = plink.model_dump()
+        console.print("🛑 [bold red]Immediate Halt:[/bold red] Hard decline detected. Customer prompted to update card details.\n")
 
     elif verdict.enforced_action == RecoveryActionType.DYNAMIC_BACKOFF_RETRY:
         action_result["status"] = "SCHEDULED_DYNAMIC_BACKOFF"
