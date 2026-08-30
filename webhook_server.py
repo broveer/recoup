@@ -213,9 +213,14 @@ async def handle_razorpay_webhook(request: Request):
     return {
         "status": "processed",
         "transaction_id": tx_id,
+        "customer_name": cust_name,
+        "amount_inr": amount_inr,
         "ai_recommendation": decision.recommended_action.value,
         "enforced_action": verdict.enforced_action.value,
         "execution": action_result,
+        "ai_decision": decision.model_dump(),
+        "policy_verdict": verdict.model_dump(),
+        "context": context.model_dump(),
     }
 
 

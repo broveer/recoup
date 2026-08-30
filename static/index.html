@@ -3,161 +3,203 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Recoup — Razorpay AI Revenue Recovery Engine</title>
+  <title>RECOUP // Autonomous Revenue Recovery for Razorpay</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-    .pulse-glow { box-shadow: 0 0 25px rgba(59, 130, 246, 0.5); }
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap');
+    
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background-color: #F8F9FA;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* Neo-Brutalist Utilities */
+    .nb-box {
+      border: 3px solid #000;
+      box-shadow: 6px 6px 0px 0px #000;
+      background: #FFFFFF;
+    }
+    .nb-box-sm {
+      border: 2px solid #000;
+      box-shadow: 3px 3px 0px 0px #000;
+    }
+    .nb-btn {
+      border: 2px solid #000;
+      box-shadow: 4px 4px 0px 0px #000;
+      transition: all 0.1s ease-in-out;
+    }
+    .nb-btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 5px 5px 0px 0px #000;
+    }
+    .nb-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0px 0px #000;
+    }
+    .nb-badge {
+      border: 2px solid #000;
+      box-shadow: 2px 2px 0px 0px #000;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="text-black min-h-screen pb-12">
 
-  <!-- Top Navbar -->
-  <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md px-6 py-4">
+  <!-- Neo-Brutalist Header -->
+  <header class="border-b-4 border-black bg-[#FFE500] px-6 py-4 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/30">
+        <div class="w-10 h-10 bg-black text-[#FFE500] border-2 border-black flex items-center justify-center font-black text-2xl shadow-[3px_3px_0px_0px_#000]">
           R
         </div>
         <div>
-          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-200 bg-clip-text text-transparent">
-            Recoup <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-mono">v0.4.0</span>
-          </h1>
-          <p class="text-xs text-slate-400">Autonomous Revenue Recovery for Indian Payment Rails (Razorpay)</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-black uppercase tracking-tight">RECOUP</h1>
+            <span class="mono text-xs px-2 py-0.5 bg-black text-white font-bold rounded-none uppercase">v0.4.0</span>
+          </div>
+          <p class="text-xs font-bold text-black uppercase tracking-wider">AI Revenue Recovery Engine for Razorpay Rails</p>
         </div>
       </div>
 
-      <!-- Live Metrics Bar -->
-      <div class="flex items-center gap-6 text-sm">
-        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-xs text-slate-400">Model:</span>
-          <span id="model-badge" class="font-mono text-xs font-semibold text-emerald-400">granite4.1:8b (GPU)</span>
+      <!-- Live Counters -->
+      <div class="flex items-center gap-4 text-xs font-bold mono">
+        <div class="nb-box-sm bg-white px-3 py-1.5 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+          <span>GPU MODEL:</span>
+          <span class="text-blue-700 font-extrabold" id="model-label">granite4.1:8b</span>
         </div>
-        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg">
-          <span class="text-xs text-slate-400">Revenue at Risk:</span>
-          <span id="metric-risk" class="font-bold text-amber-400 ml-1">₹0.00</span>
+        <div class="nb-box-sm bg-[#FF6B6B] text-white px-3 py-1.5">
+          <span>AT RISK:</span>
+          <span id="metric-risk" class="ml-1 text-sm font-black">₹0.00</span>
         </div>
-        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg">
-          <span class="text-xs text-slate-400">Recovered:</span>
-          <span id="metric-recovered" class="font-bold text-emerald-400 ml-1">₹0.00</span>
+        <div class="nb-box-sm bg-[#00F59B] text-black px-3 py-1.5">
+          <span>RECOVERED:</span>
+          <span id="metric-recovered" class="ml-1 text-sm font-black">₹0.00</span>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Grid -->
-  <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <!-- Main Work Area -->
+  <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
 
-    <!-- Column 1: Storefront & Razorpay Checkout Simulator (5 cols) -->
+    <!-- Column 1: Store & Checkout Simulator (5 cols) -->
     <section class="lg:col-span-5 space-y-6">
-      <!-- Store Card -->
-      <div class="glass rounded-2xl p-5 shadow-xl">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-bold text-slate-200 flex items-center gap-2">
-            <i class="fa-solid fa-store text-blue-400"></i> Merchant Checkout Portal
+      
+      <!-- Checkout Simulator Box -->
+      <div class="nb-box p-5 bg-[#FFFFFF]">
+        <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+          <h2 class="font-black text-lg uppercase flex items-center gap-2">
+            <i class="fa-solid fa-cart-shopping text-blue-600"></i> Checkout Simulator
           </h2>
-          <span class="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">CloudScale SaaS</span>
+          <span class="mono text-xs font-bold bg-[#E2E8F0] px-2 py-1 border border-black">DEMO STORE</span>
         </div>
 
-        <!-- Product Selector -->
-        <div class="space-y-3">
-          <label class="text-xs font-medium text-slate-300">Select Plan / Order:</label>
-          <div class="grid grid-cols-2 gap-2">
-            <button onclick="selectProduct(3499, 'Pro Annual Plan', 'order_pro_8801', 'Rahul Verma', '9876543210', 'standard', 12000)" class="prod-btn border border-blue-500/40 bg-blue-500/10 p-3 rounded-xl text-left hover:border-blue-400 transition" id="prod-1">
-              <div class="font-semibold text-sm text-blue-300">Pro Annual</div>
-              <div class="text-lg font-bold text-white">₹3,499</div>
-              <div class="text-[11px] text-slate-400">Rahul Verma (₹12k CLTV)</div>
+        <!-- Plan Selection -->
+        <div class="space-y-2 mb-4">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-700">1. Select Order & Customer:</label>
+          <div class="grid grid-cols-2 gap-3">
+            <button onclick="selectProduct(3499, 'Pro SaaS Annual', 'order_pro_8801', 'Rahul Verma', '9876543210', 'standard', 12000)" id="prod-1" class="nb-btn p-3 bg-[#E0F2FE] text-left border-2 border-black">
+              <div class="font-extrabold text-xs uppercase text-blue-800">Pro Annual</div>
+              <div class="text-xl font-black text-black">₹3,499</div>
+              <div class="text-[11px] font-bold text-slate-700 mt-1">Rahul Verma</div>
+              <div class="mono text-[10px] text-slate-600">CLTV: ₹12,000</div>
             </button>
-            <button onclick="selectProduct(85000, 'Enterprise Suite', 'order_ent_9902', 'Zenith Tech Ltd', '9811223344', 'enterprise', 450000)" class="prod-btn border border-slate-700 bg-slate-800/40 p-3 rounded-xl text-left hover:border-blue-400 transition" id="prod-2">
-              <div class="font-semibold text-sm text-indigo-300">Enterprise Suite</div>
-              <div class="text-lg font-bold text-white">₹85,000</div>
-              <div class="text-[11px] text-slate-400">Zenith Tech (₹4.5L CLTV)</div>
+            <button onclick="selectProduct(85000, 'Enterprise Suite', 'order_ent_9902', 'Zenith Tech Ltd', '9811223344', 'enterprise', 450000)" id="prod-2" class="nb-btn p-3 bg-white text-left border-2 border-black">
+              <div class="font-extrabold text-xs uppercase text-purple-800">Enterprise</div>
+              <div class="text-xl font-black text-black">₹85,000</div>
+              <div class="text-[11px] font-bold text-slate-700 mt-1">Zenith Tech</div>
+              <div class="mono text-[10px] text-slate-600">CLTV: ₹4,50,000</div>
             </button>
           </div>
         </div>
 
-        <!-- Failure Simulator Dropdown -->
-        <div class="mt-4 space-y-2">
-          <label class="text-xs font-medium text-slate-300">Simulate Real Payment Failure Mode:</label>
-          <select id="failure-mode" class="w-full bg-slate-900 border border-slate-700 text-sm rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500 font-sans">
+        <!-- Failure Mode Selector -->
+        <div class="space-y-2 mb-5">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-700">2. Select Payment Failure Cause:</label>
+          <select id="failure-mode" class="w-full bg-[#FFFBEB] border-2 border-black text-xs font-bold p-3 focus:outline-none focus:bg-white shadow-[3px_3px_0px_0px_#000]">
             <option value="otp_expired">⚡ 3DS OTP Session Timed Out (Customer Dropoff)</option>
-            <option value="bank_downtime">🏦 Issuing Bank / NPCI Switch Downtime (UPI)</option>
-            <option value="card_expired">🛑 Card Expired (07/26) — Hard Decline</option>
-            <option value="insufficient_funds">📉 Insufficient Funds (Recurring Mandate)</option>
+            <option value="bank_downtime">🏦 Issuing Bank / NPCI Switch Downtime (UPI Intent)</option>
+            <option value="card_expired">🛑 Card Expired (07/26) — Permanent Hard Decline</option>
+            <option value="insufficient_funds">📉 Insufficient Funds (Recurring Mandate Subscription)</option>
             <option value="card_limit_exceeded">🏢 Corporate Netbanking Limit Exceeded (High Ticket)</option>
           </select>
         </div>
 
-        <!-- Trigger Checkout Failure Button -->
-        <button onclick="triggerPaymentFailure()" id="btn-trigger" class="w-full mt-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition active:scale-[0.98]">
-          <i class="fa-solid fa-bolt"></i> Simulate Razorpay Payment & Failure
+        <!-- Trigger Button -->
+        <button onclick="triggerPaymentFailure()" id="btn-trigger" class="nb-btn w-full bg-[#FFE500] hover:bg-[#FFD600] text-black font-black uppercase text-sm py-3.5 px-4 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-play"></i> Simulate Payment & Trigger Recovery
         </button>
       </div>
 
-      <!-- Simulated Customer WhatsApp Device -->
-      <div class="glass rounded-2xl p-5 shadow-xl border border-emerald-500/20 bg-slate-950/90">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2 text-emerald-400 text-sm font-semibold">
-            <i class="fa-brands fa-whatsapp text-lg"></i> Customer WhatsApp Screen
+      <!-- Customer WhatsApp Screen -->
+      <div class="nb-box p-5 bg-[#E6F4EA] border-3 border-black">
+        <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
+          <div class="flex items-center gap-2 font-black text-xs uppercase text-emerald-900">
+            <i class="fa-brands fa-whatsapp text-base text-emerald-700"></i> Customer WhatsApp Screen
           </div>
-          <span id="cust-phone-label" class="text-xs font-mono text-slate-400">+91 9876543210</span>
+          <span id="cust-phone-label" class="mono text-xs font-bold text-slate-800">+91 9876543210</span>
         </div>
 
-        <!-- WhatsApp Chat Bubble -->
-        <div class="py-4 space-y-3" id="whatsapp-container">
-          <div class="text-center text-xs text-slate-500">Waiting for recovery trigger...</div>
+        <div id="whatsapp-container" class="py-2">
+          <div class="text-center py-6 text-xs font-bold text-slate-500 uppercase">
+            [ Awaiting Recovery Action Trigger ]
+          </div>
         </div>
       </div>
+
     </section>
 
-    <!-- Column 2: Live AI Agent Trace & Policy Inspector (7 cols) -->
+    <!-- Column 2: Live AI Reasoning & Policy Inspector (7 cols) -->
     <section class="lg:col-span-7 space-y-6">
-      <div class="glass rounded-2xl p-5 shadow-xl">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-          <h2 class="font-bold text-slate-200 flex items-center gap-2">
-            <i class="fa-solid fa-microchip text-indigo-400"></i> Recoup Live Execution & Policy Inspector
+      
+      <!-- Diagnostic Trace Box -->
+      <div class="nb-box p-5 bg-[#FFFFFF]">
+        <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+          <h2 class="font-black text-lg uppercase flex items-center gap-2">
+            <i class="fa-solid fa-brain text-purple-600"></i> Autonomous Recovery Execution Trace
           </h2>
-          <span id="engine-status" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">Idle</span>
+          <span id="engine-status" class="mono text-xs font-bold bg-[#E2E8F0] border border-black px-2 py-1 uppercase">Ready</span>
         </div>
 
-        <!-- Step-by-Step Recovery Trace -->
-        <div class="space-y-4 font-sans" id="trace-container">
-          <!-- Default placeholder -->
-          <div class="p-6 rounded-xl border border-dashed border-slate-800 text-center text-slate-500 text-sm">
-            <i class="fa-solid fa-play-circle text-2xl mb-2 text-slate-600"></i>
-            <p>Select a scenario and click <b>Simulate Razorpay Payment</b> to watch the autonomous recovery loop execute live.</p>
+        <!-- Step-by-Step Container -->
+        <div id="trace-container" class="space-y-3">
+          <div class="border-2 border-dashed border-slate-400 p-8 text-center bg-slate-50">
+            <div class="font-black text-sm uppercase text-slate-600 mb-1">No Active Transaction</div>
+            <p class="text-xs font-medium text-slate-500">Select a payment scenario and click <b>Simulate Payment</b> to watch the AI Agent & Policy Guardrails execute live.</p>
           </div>
         </div>
       </div>
 
-      <!-- Recovery History Ledger -->
-      <div class="glass rounded-2xl p-5 shadow-xl">
-        <h3 class="font-bold text-slate-200 text-sm mb-3 flex items-center justify-between">
-          <span><i class="fa-solid fa-list-check text-blue-400 mr-2"></i> Real-Time Audit Trail</span>
-          <span class="text-xs text-slate-500 font-normal">Auto-updating</span>
-        </h3>
+      <!-- Real-Time Audit Log Table -->
+      <div class="nb-box p-5 bg-[#FFFFFF]">
+        <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
+          <h3 class="font-black text-sm uppercase flex items-center gap-2">
+            <i class="fa-solid fa-shield text-blue-600"></i> Immutable Audit Ledger
+          </h3>
+          <span class="mono text-[11px] font-bold text-slate-600 uppercase">Real-Time Event Stream</span>
+        </div>
+
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-900/60 text-slate-400 border-b border-slate-800">
+          <table class="w-full text-left text-xs mono">
+            <thead class="bg-black text-white uppercase text-[11px]">
               <tr>
-                <th class="p-2.5">TX ID</th>
-                <th class="p-2.5">Customer</th>
-                <th class="p-2.5">Amount</th>
-                <th class="p-2.5">AI Action</th>
-                <th class="p-2.5">Policy</th>
-                <th class="p-2.5">Status</th>
+                <th class="p-2">TX ID</th>
+                <th class="p-2">Customer</th>
+                <th class="p-2">Amount</th>
+                <th class="p-2">AI Action</th>
+                <th class="p-2">Policy</th>
+                <th class="p-2">Status</th>
               </tr>
             </thead>
-            <tbody id="audit-table-body" class="divide-y divide-slate-800/60">
+            <tbody id="audit-table-body" class="divide-y-2 divide-black">
               <!-- Dynamically populated -->
             </tbody>
           </table>
         </div>
       </div>
+
     </section>
 
   </main>
@@ -165,7 +207,7 @@
   <script>
     let currentProd = {
       amount: 3499,
-      name: 'Pro Annual Plan',
+      name: 'Pro SaaS Annual',
       orderId: 'order_pro_8801',
       customerName: 'Rahul Verma',
       phone: '9876543210',
@@ -178,12 +220,12 @@
 
     function selectProduct(amount, name, orderId, customerName, phone, tier, cltv) {
       currentProd = { amount, name, orderId, customerName, phone, tier, cltv };
-      document.querySelectorAll('.prod-btn').forEach(b => b.classList.replace('border-blue-500/40', 'border-slate-700'));
-      if (amount === 3499) {
-        document.getElementById('prod-1').classList.replace('border-slate-700', 'border-blue-500/40');
-      } else {
-        document.getElementById('prod-2').classList.replace('border-slate-700', 'border-blue-500/40');
-      }
+      document.getElementById('prod-1').className = amount === 3499 
+        ? 'nb-btn p-3 bg-[#E0F2FE] text-left border-2 border-black' 
+        : 'nb-btn p-3 bg-white text-left border-2 border-black';
+      document.getElementById('prod-2').className = amount === 85000 
+        ? 'nb-btn p-3 bg-[#F3E8FF] text-left border-2 border-black' 
+        : 'nb-btn p-3 bg-white text-left border-2 border-black';
       document.getElementById('cust-phone-label').innerText = '+91 ' + phone;
     }
 
@@ -191,10 +233,9 @@
       const mode = document.getElementById('failure-mode').value;
       const btn = document.getElementById('btn-trigger');
       btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing Razorpay Webhook...`;
-      document.getElementById('engine-status').innerHTML = `<span class="text-amber-400 animate-pulse">● AI Diagnosing</span>`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Ingesting Webhook & AI Reasoning...`;
+      document.getElementById('engine-status').innerHTML = `<span class="bg-[#FFE500] px-2 py-0.5 text-black border border-black font-black animate-pulse">● AI RUNNING</span>`;
 
-      // Construct authentic Razorpay webhook payload
       const txId = `pay_RZP_${Math.floor(100000 + Math.random() * 900000)}`;
       const payload = {
         entity: "event",
@@ -236,15 +277,17 @@
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        
+        // Render 4-step trace & WhatsApp screen
         renderExecutionTrace(txId, currentProd, mode, data);
         renderWhatsAppNudge(currentProd, data, txId);
         updateAuditTable();
       } catch (err) {
-        console.error(err);
+        console.error("Webhook Error:", err);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-bolt"></i> Simulate Razorpay Payment & Failure`;
-        document.getElementById('engine-status').innerHTML = `<span class="text-emerald-400">● Completed</span>`;
+        btn.innerHTML = `<i class="fa-solid fa-play"></i> Simulate Payment & Trigger Recovery`;
+        document.getElementById('engine-status').innerHTML = `<span class="bg-[#00F59B] px-2 py-0.5 text-black border border-black font-black">● ACTION ENFORCED</span>`;
       }
     }
 
@@ -253,7 +296,7 @@
         case 'otp_expired': return 'Customer session expired during OTP 3DS authentication.';
         case 'bank_downtime': return 'NPCI switch timed out during issuing bank communication.';
         case 'card_expired': return 'Payment card validity date has passed (Expired 07/26).';
-        case 'insufficient_funds': return 'Account balance insufficient for automated subscription mandate.';
+        case 'insufficient_funds': return 'Account balance insufficient for subscription mandate.';
         case 'card_limit_exceeded': return 'Single corporate netbanking transaction limit exceeded.';
         default: return 'Payment failed at gateway.';
       }
@@ -261,58 +304,92 @@
 
     function renderExecutionTrace(txId, prod, mode, data) {
       const container = document.getElementById('trace-container');
-      const isPermitted = data.execution?.is_permitted;
-      const action = data.enforced_action;
+      const isPermitted = data.policy_verdict ? data.policy_verdict.is_permitted : true;
+      const appliedRule = data.policy_verdict ? data.policy_verdict.applied_rule : 'RULE_POLICY_APPROVED';
+      const aiDecision = data.ai_decision || {};
+      const action = data.enforced_action || data.ai_recommendation;
       const plink = data.execution?.payment_link;
+      const reasoning = aiDecision.reasoning_summary || `AI diagnosed ${mode} failure on ${prod.tier} tier account.`;
+      const likelihood = aiDecision.recovery_likelihood_pct !== undefined ? aiDecision.recovery_likelihood_pct : 85.0;
 
       container.innerHTML = `
-        <div class="space-y-3 animate-fadeIn">
-          <!-- Step 1: Webhook Ingested -->
-          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-3">
-            <div class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
-            <div class="text-xs space-y-1 w-full">
-              <div class="flex justify-between font-semibold text-slate-200">
-                <span>Webhook Ingested: <span class="text-amber-400">${txId}</span></span>
-                <span class="text-slate-400">₹${prod.amount.toLocaleString('en-IN')}</span>
-              </div>
-              <p class="text-slate-400">Customer: <b class="text-white">${prod.customerName}</b> (${prod.tier.toUpperCase()}, CLTV: ₹${prod.cltv.toLocaleString('en-IN')})</p>
-              <div class="text-amber-300 font-mono text-[11px]">Reason: ${mode} (${getErrorDesc(mode)})</div>
-            </div>
+        <!-- Step 1: Webhook Event Ingested -->
+        <div class="nb-box-sm p-3.5 bg-[#FFFBEB]">
+          <div class="flex items-center justify-between border-b-2 border-black pb-1 mb-2">
+            <span class="font-black text-xs uppercase flex items-center gap-1.5">
+              <span class="w-5 h-5 bg-black text-white flex items-center justify-center text-[10px] font-bold">1</span>
+              Razorpay Webhook Ingested: <span class="mono text-blue-700">${txId}</span>
+            </span>
+            <span class="mono font-black text-xs">₹${prod.amount.toLocaleString('en-IN')}</span>
           </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div><b>Customer:</b> ${prod.customerName} (${prod.tier.toUpperCase()})</div>
+            <div><b>CLTV:</b> ₹${prod.cltv.toLocaleString('en-IN')}</div>
+          </div>
+          <div class="mt-2 text-xs bg-black text-white p-1.5 mono">
+            [ERROR] ${mode} // ${getErrorDesc(mode)}
+          </div>
+        </div>
 
-          <!-- Step 2: AI Reasoning -->
-          <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex items-start gap-3">
-            <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
-            <div class="text-xs space-y-1 w-full">
-              <div class="font-semibold text-indigo-300 flex justify-between">
-                <span>AI Recommendation: <b class="text-white">${data.ai_recommendation}</b></span>
-                <span class="text-emerald-400">granite4.1:8b (RTX GPU)</span>
-              </div>
-              <p class="text-slate-300 italic">"Diagnosed ${mode} on ${prod.tier} tier account. Formulated optimal bounded intervention."</p>
-            </div>
+        <!-- Step 2: AI Cognitive Diagnosis -->
+        <div class="nb-box-sm p-3.5 bg-[#F3E8FF]">
+          <div class="flex items-center justify-between border-b-2 border-black pb-1 mb-2">
+            <span class="font-black text-xs uppercase flex items-center gap-1.5">
+              <span class="w-5 h-5 bg-black text-white flex items-center justify-center text-[10px] font-bold">2</span>
+              AI Agent Reasoning (<span class="mono text-purple-700 font-bold">granite4.1:8b</span>)
+            </span>
+            <span class="nb-badge px-2 py-0.5 bg-[#00F59B] text-black font-black text-[10px] uppercase">
+              Likelihood: ${likelihood}%
+            </span>
           </div>
+          <p class="text-xs font-semibold text-slate-800 italic bg-white p-2 border border-black">
+            "${reasoning}"
+          </p>
+          <div class="mt-2 flex items-center justify-between text-xs font-bold">
+            <span>RECOMMENDED ACTION:</span>
+            <span class="mono bg-black text-[#FFE500] px-2 py-0.5 uppercase">${data.ai_recommendation}</span>
+          </div>
+        </div>
 
-          <!-- Step 3: Policy Guardrails -->
-          <div class="p-3.5 rounded-xl bg-slate-900 border ${isPermitted ? 'border-emerald-500/30' : 'border-amber-500/30'} flex items-start gap-3">
-            <div class="w-7 h-7 rounded-lg ${isPermitted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'} flex items-center justify-center shrink-0 text-xs font-bold">3</div>
-            <div class="text-xs space-y-1 w-full">
-              <div class="flex justify-between font-semibold ${isPermitted ? 'text-emerald-300' : 'text-amber-300'}">
-                <span>Policy Verdict: <b>${isPermitted ? 'PERMITTED' : 'OVERRIDDEN'}</b></span>
-                <span class="font-mono text-[11px]">${data.execution?.policy_rule || 'RULE_VERIFIED'}</span>
-              </div>
-              <p class="text-slate-400 text-[11px]">Deterministic safety constraints enforced: max retries capped, zero hard-decline retries.</p>
-            </div>
+        <!-- Step 3: Policy Guardrails Enforcement -->
+        <div class="nb-box-sm p-3.5 ${isPermitted ? 'bg-[#E6F4EA]' : 'bg-[#FFE4E6]'}">
+          <div class="flex items-center justify-between border-b-2 border-black pb-1 mb-2">
+            <span class="font-black text-xs uppercase flex items-center gap-1.5">
+              <span class="w-5 h-5 bg-black text-white flex items-center justify-center text-[10px] font-bold">3</span>
+              Deterministic Financial Guardrails
+            </span>
+            <span class="nb-badge px-2 py-0.5 ${isPermitted ? 'bg-[#00F59B] text-black' : 'bg-[#FF6B6B] text-white'} font-black text-[10px] uppercase">
+              ${isPermitted ? 'APPROVED' : 'OVERRIDDEN'}
+            </span>
           </div>
+          <div class="text-xs font-bold flex justify-between items-center">
+            <span>RULE APPLIED:</span>
+            <span class="mono text-slate-800">${appliedRule}</span>
+          </div>
+          <p class="text-[11px] text-slate-700 mt-1">Zero-retry hard decline rules & maximum automated exposure limits strictly validated.</p>
+        </div>
 
-          <!-- Step 4: Final Enforced Action -->
-          <div class="p-3.5 rounded-xl bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-500/40 flex items-start gap-3">
-            <div class="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0 text-xs font-bold">4</div>
-            <div class="text-xs space-y-1 w-full">
-              <div class="font-semibold text-blue-200">Enforced Action: <span class="text-white uppercase font-bold">${action}</span></div>
-              ${plink ? `<div class="text-xs text-emerald-400 mt-1 font-mono">1-Click Razorpay Link: <a href="${plink.short_url}" target="_blank" class="underline">${plink.short_url}</a></div>` : ''}
-              ${data.execution?.retry_delay_seconds ? `<div class="text-xs text-amber-300 mt-1">Silent Retry Backoff: ${data.execution.retry_delay_seconds} seconds</div>` : ''}
-            </div>
+        <!-- Step 4: Final Enforced Action -->
+        <div class="nb-box-sm p-3.5 bg-[#FFE500]">
+          <div class="flex items-center justify-between border-b-2 border-black pb-1 mb-2">
+            <span class="font-black text-xs uppercase flex items-center gap-1.5">
+              <span class="w-5 h-5 bg-black text-white flex items-center justify-center text-[10px] font-bold">4</span>
+              Enforced Action Dispatch
+            </span>
+            <span class="mono font-black text-xs uppercase">${action}</span>
           </div>
+          ${plink ? `
+            <div class="bg-white p-2 border-2 border-black text-xs mono">
+              <div class="font-bold text-black mb-1">RAZORPAY PAYMENT LINK GENERATED:</div>
+              <a href="${plink.short_url}" target="_blank" class="text-blue-700 underline font-black text-sm">${plink.short_url}</a>
+              <div class="text-[10px] text-slate-600 mt-1">Status: ${plink.status.toUpperCase()} // WhatsApp + SMS Automated Dispatch</div>
+            </div>
+          ` : ''}
+          ${data.execution?.retry_delay_seconds ? `
+            <div class="bg-white p-2 border-2 border-black text-xs mono font-bold text-blue-800">
+              ⏳ Dynamic Backoff Scheduled: Next retry in ${data.execution.retry_delay_seconds} seconds.
+            </div>
+          ` : ''}
         </div>
       `;
     }
@@ -321,41 +398,51 @@
       const container = document.getElementById('whatsapp-container');
       const plink = data.execution?.payment_link;
       const action = data.enforced_action;
+      const aiDecision = data.ai_decision || {};
+      const customMsg = aiDecision.customer_message || `Hi ${prod.customerName}, your payment of ₹${prod.amount.toLocaleString('en-IN')} was interrupted. You can complete it in 1-click via UPI.`;
 
       if (plink) {
         container.innerHTML = `
-          <div class="bg-emerald-950/60 border border-emerald-700/50 p-3.5 rounded-2xl rounded-tl-none space-y-2.5 text-xs text-slate-200 shadow-md">
-            <div class="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
-              <i class="fa-solid fa-shield-check"></i> CloudScale via Razorpay
+          <div class="nb-box-sm bg-white p-3.5 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-300 pb-1.5">
+              <span class="font-black text-[11px] uppercase text-emerald-800 flex items-center gap-1">
+                <i class="fa-solid fa-circle-check text-emerald-600"></i> CloudScale Verified Merchant
+              </span>
+              <span class="text-[10px] font-bold text-slate-500">Just Now</span>
             </div>
-            <p>Hi <b>${prod.customerName}</b>, we noticed your payment of <b>₹${prod.amount.toLocaleString('en-IN')}</b> for <i>${prod.name}</i> was interrupted. You can complete it in 1-click via UPI:</p>
             
-            <a href="javascript:void(0)" onclick="completeCustomerPayment('${txId}', ${prod.amount})" class="block w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-center rounded-xl shadow transition text-xs">
-              <i class="fa-solid fa-lock mr-1"></i> Pay ₹${prod.amount.toLocaleString('en-IN')} with UPI (1-Click)
-            </a>
+            <p class="text-xs font-semibold text-slate-800 leading-relaxed">
+              ${customMsg}
+            </p>
+
+            <button onclick="completeCustomerPayment('${txId}', ${prod.amount})" class="nb-btn w-full py-3 bg-[#00F59B] hover:bg-[#00E08F] text-black font-black uppercase text-xs flex items-center justify-center gap-2">
+              <i class="fa-solid fa-lock text-sm"></i> Pay ₹${prod.amount.toLocaleString('en-IN')} with UPI (1-Click)
+            </button>
             
-            <div class="text-[10px] text-slate-400 text-right">Just now • Encrypted via Razorpay</div>
+            <div class="mono text-[10px] text-center text-slate-500 uppercase">
+              Razorpay Secured Link: ${plink.short_url}
+            </div>
           </div>
         `;
       } else if (action === 'escalate_to_human') {
         container.innerHTML = `
-          <div class="bg-indigo-950/60 border border-indigo-700/50 p-3.5 rounded-2xl text-xs text-slate-200">
-            <div class="text-indigo-400 font-bold mb-1">👤 White-Glove VIP Outreach</div>
-            <p>Assigned to dedicated merchant account manager for personal phone/invoice recovery.</p>
+          <div class="nb-box-sm bg-[#F3E8FF] p-4 text-xs font-bold space-y-1">
+            <div class="text-purple-900 font-black text-sm uppercase">👤 White-Glove VIP Escalation</div>
+            <p class="text-slate-800">Transaction exceeds ₹50,000 threshold. Queued for immediate high-touch outreach by merchant account manager.</p>
           </div>
         `;
       } else if (action === 'immediate_stop') {
         container.innerHTML = `
-          <div class="bg-rose-950/60 border border-rose-700/50 p-3.5 rounded-2xl text-xs text-slate-200">
-            <div class="text-rose-400 font-bold mb-1">🛑 Immediate Stop Enforced</div>
-            <p>Hard decline on card. Customer requested to update payment details manually (0 wasted retries).</p>
+          <div class="nb-box-sm bg-[#FFE4E6] p-4 text-xs font-bold space-y-1">
+            <div class="text-rose-900 font-black text-sm uppercase">🛑 Immediate Stop Enforced</div>
+            <p class="text-slate-800">Hard decline detected. Automated retries halted permanently to prevent processing fee waste.</p>
           </div>
         `;
       } else {
         container.innerHTML = `
-          <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-xs text-slate-300">
-            <div class="text-blue-400 font-bold mb-1">⏳ Dynamic Backoff In Progress</div>
-            <p>Silent retry scheduled during bank off-peak window.</p>
+          <div class="nb-box-sm bg-[#E0F2FE] p-4 text-xs font-bold space-y-1">
+            <div class="text-blue-900 font-black text-sm uppercase">⏳ Silent Dynamic Backoff</div>
+            <p class="text-slate-800">Bank downtime detected. Scheduled silent retry during off-peak window.</p>
           </div>
         `;
       }
@@ -364,14 +451,14 @@
     function completeCustomerPayment(txId, amount) {
       totalRecovered += amount;
       document.getElementById('metric-recovered').innerText = `₹${totalRecovered.toLocaleString('en-IN')}`;
-      
+
       const container = document.getElementById('whatsapp-container');
       container.innerHTML = `
-        <div class="bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl text-center space-y-2 animate-bounce">
-          <i class="fa-solid fa-circle-check text-emerald-400 text-3xl"></i>
-          <div class="font-bold text-white text-sm">Payment Recovered Successfully!</div>
-          <div class="text-xs text-emerald-200">₹${amount.toLocaleString('en-IN')} captured via Razorpay UPI Intent.</div>
-          <div class="text-[10px] text-slate-400">Webhook 'order.paid' fired • Revenue Protected</div>
+        <div class="nb-box p-4 bg-[#00F59B] text-black text-center space-y-2 animate-bounce">
+          <i class="fa-solid fa-circle-check text-3xl"></i>
+          <div class="font-black text-base uppercase tracking-tight">Payment Successfully Recovered!</div>
+          <div class="mono font-bold text-xs">₹${amount.toLocaleString('en-IN')} Captured via Razorpay 1-Click Link</div>
+          <div class="text-[10px] font-bold uppercase bg-black text-white p-1">Webhook 'order.paid' Recorded</div>
         </div>
       `;
       updateAuditTable();
@@ -385,13 +472,13 @@
         if (!data.records || data.records.length === 0) return;
 
         tbody.innerHTML = data.records.slice(-6).reverse().map(r => `
-          <tr class="hover:bg-slate-800/40 transition">
-            <td class="p-2.5 font-mono text-amber-400">${r.transaction_id}</td>
-            <td class="p-2.5 text-white font-medium">${r.customer_name}</td>
-            <td class="p-2.5">₹${r.amount_inr.toLocaleString('en-IN')}</td>
-            <td class="p-2.5 font-semibold text-blue-400">${r.ai_decision?.recommended_action || '-'}</td>
-            <td class="p-2.5"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono">PERMITTED</span></td>
-            <td class="p-2.5 text-emerald-400 font-semibold">Active</td>
+          <tr class="hover:bg-yellow-50 transition">
+            <td class="p-2 font-bold text-blue-700">${r.transaction_id}</td>
+            <td class="p-2 font-bold">${r.customer_name}</td>
+            <td class="p-2 font-black">₹${r.amount_inr.toLocaleString('en-IN')}</td>
+            <td class="p-2 font-bold uppercase text-purple-800">${r.ai_decision?.recommended_action || '-'}</td>
+            <td class="p-2"><span class="px-1.5 py-0.5 bg-[#00F59B] border border-black font-black text-[10px]">PERMITTED</span></td>
+            <td class="p-2 font-bold text-emerald-700">Captured</td>
           </tr>
         `).join('');
       } catch (e) {}
