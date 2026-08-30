@@ -11,17 +11,18 @@ Recoup is an AI-powered revenue recovery system for Indian payment rails (UPI, C
 We follow an iterative daily release cycle culminating in the final submission:
 * **Day 1:** `v0.1.0` — Minimal AI Recovery Agent, Structured Decision Schema & Policy Guardrails
 * **Day 2:** `v0.2.0` — Synthetic Dataset Generator, Competent Non-AI Baseline, Comparative Evaluation Benchmark
-* **Day 3 (Current):** `v0.3.0` — Razorpay Test-Mode Connector, Live Webhook Receiver (`payment.failed`), 1-Click Payment Link Generator
-* **Day 4–11:** `v0.4.0` $\rightarrow$ `v0.11.0` — Multi-channel execution, Interactive Web Checkout Simulator, Human Escalation Dashboard
+* **Day 3:** `v0.3.0` — Razorpay Test-Mode Connector, Live Webhook Receiver (`payment.failed`), 1-Click Payment Link Generator
+* **Day 4 (Current):** `v0.4.0` — Interactive Web Storefront, Razorpay Checkout Simulator UI, Live WhatsApp Recovery Nudge Widget
+* **Day 5–11:** `v0.5.0` $\rightarrow$ `v0.11.0` — Multi-channel execution, Human Escalation Dashboard, Video Demo Assets
 * **Day 12:** `v1.0.0` — Complete Final Submission
 
 ---
 
-## 🏛️ v0.3.0 Architecture
+## 🏛️ v0.4.0 Architecture
 
 ```text
-[Razorpay Checkout Failure]
-          ↓
+[Interactive Web Storefront (http://localhost:8000)]
+          ↓ (Simulate Payment Failure on Checkout)
 [POST /webhook/razorpay (FastAPI)]  <-- Ingests `payment.failed` webhooks
           ↓
 [Context Assembler & AI Agent]      <-- Granite 4.1 8B on RTX GPU
@@ -30,29 +31,27 @@ We follow an iterative daily release cycle culminating in the final submission:
           ↓
 [Razorpay API Client]               <-- Generates 1-click Payment Links (`/v1/payment_links`)
           ↓
-[Live Audit Stream & Metrics API]   <-- Real-time recovery analytics
+[Interactive Customer WhatsApp Screen] <-- Simulated 1-Click UPI Recovery & Instant Payment
+          ↓
+[Real-Time Revenue Metrics Counter] <-- Dynamic update of Protected & Recovered Revenue
 ```
 
 ---
 
-## 🚀 Quickstart (v0.3.0)
+## 🚀 Quickstart (v0.4.0)
 
 ### 1. Requirements
 * Python 3.10+
 * Dependencies: `fastapi`, `uvicorn`, `pydantic`, `httpx`, `rich`
 * Local GPU / Ollama model (`granite4.1:8b` or heuristic fallback)
 
-### 2. Start the Live Webhook Server
+### 2. Launch the Interactive Web Storefront & Simulator
 ```bash
 python -m uvicorn webhook_server:app --port 8000
 ```
+Open your browser and navigate to: **`http://localhost:8000`**
 
-### 3. Run Live Webhook Ingestion Tests
-```bash
-python test_live_recovery.py
-```
-
-### 4. Run Comparative Benchmark
+### 3. Run Automated Comparative Benchmark
 ```bash
 python benchmark.py
 ```

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recoup — Razorpay AI Revenue Recovery Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .pulse-glow { box-shadow: 0 0 25px rgba(59, 130, 246, 0.5); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+  <!-- Top Navbar -->
+  <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/30">
+          R
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-200 bg-clip-text text-transparent">
+            Recoup <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-mono">v0.4.0</span>
+          </h1>
+          <p class="text-xs text-slate-400">Autonomous Revenue Recovery for Indian Payment Rails (Razorpay)</p>
+        </div>
+      </div>
+
+      <!-- Live Metrics Bar -->
+      <div class="flex items-center gap-6 text-sm">
+        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs text-slate-400">Model:</span>
+          <span id="model-badge" class="font-mono text-xs font-semibold text-emerald-400">granite4.1:8b (GPU)</span>
+        </div>
+        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg">
+          <span class="text-xs text-slate-400">Revenue at Risk:</span>
+          <span id="metric-risk" class="font-bold text-amber-400 ml-1">₹0.00</span>
+        </div>
+        <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg">
+          <span class="text-xs text-slate-400">Recovered:</span>
+          <span id="metric-recovered" class="font-bold text-emerald-400 ml-1">₹0.00</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Column 1: Storefront & Razorpay Checkout Simulator (5 cols) -->
+    <section class="lg:col-span-5 space-y-6">
+      <!-- Store Card -->
+      <div class="glass rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-store text-blue-400"></i> Merchant Checkout Portal
+          </h2>
+          <span class="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">CloudScale SaaS</span>
+        </div>
+
+        <!-- Product Selector -->
+        <div class="space-y-3">
+          <label class="text-xs font-medium text-slate-300">Select Plan / Order:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="selectProduct(3499, 'Pro Annual Plan', 'order_pro_8801', 'Rahul Verma', '9876543210', 'standard', 12000)" class="prod-btn border border-blue-500/40 bg-blue-500/10 p-3 rounded-xl text-left hover:border-blue-400 transition" id="prod-1">
+              <div class="font-semibold text-sm text-blue-300">Pro Annual</div>
+              <div class="text-lg font-bold text-white">₹3,499</div>
+              <div class="text-[11px] text-slate-400">Rahul Verma (₹12k CLTV)</div>
+            </button>
+            <button onclick="selectProduct(85000, 'Enterprise Suite', 'order_ent_9902', 'Zenith Tech Ltd', '9811223344', 'enterprise', 450000)" class="prod-btn border border-slate-700 bg-slate-800/40 p-3 rounded-xl text-left hover:border-blue-400 transition" id="prod-2">
+              <div class="font-semibold text-sm text-indigo-300">Enterprise Suite</div>
+              <div class="text-lg font-bold text-white">₹85,000</div>
+              <div class="text-[11px] text-slate-400">Zenith Tech (₹4.5L CLTV)</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Failure Simulator Dropdown -->
+        <div class="mt-4 space-y-2">
+          <label class="text-xs font-medium text-slate-300">Simulate Real Payment Failure Mode:</label>
+          <select id="failure-mode" class="w-full bg-slate-900 border border-slate-700 text-sm rounded-xl px-3 py-2.5 text-slate-200 focus:outline-none focus:border-blue-500 font-sans">
+            <option value="otp_expired">⚡ 3DS OTP Session Timed Out (Customer Dropoff)</option>
+            <option value="bank_downtime">🏦 Issuing Bank / NPCI Switch Downtime (UPI)</option>
+            <option value="card_expired">🛑 Card Expired (07/26) — Hard Decline</option>
+            <option value="insufficient_funds">📉 Insufficient Funds (Recurring Mandate)</option>
+            <option value="card_limit_exceeded">🏢 Corporate Netbanking Limit Exceeded (High Ticket)</option>
+          </select>
+        </div>
+
+        <!-- Trigger Checkout Failure Button -->
+        <button onclick="triggerPaymentFailure()" id="btn-trigger" class="w-full mt-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition active:scale-[0.98]">
+          <i class="fa-solid fa-bolt"></i> Simulate Razorpay Payment & Failure
+        </button>
+      </div>
+
+      <!-- Simulated Customer WhatsApp Device -->
+      <div class="glass rounded-2xl p-5 shadow-xl border border-emerald-500/20 bg-slate-950/90">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2 text-emerald-400 text-sm font-semibold">
+            <i class="fa-brands fa-whatsapp text-lg"></i> Customer WhatsApp Screen
+          </div>
+          <span id="cust-phone-label" class="text-xs font-mono text-slate-400">+91 9876543210</span>
+        </div>
+
+        <!-- WhatsApp Chat Bubble -->
+        <div class="py-4 space-y-3" id="whatsapp-container">
+          <div class="text-center text-xs text-slate-500">Waiting for recovery trigger...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Column 2: Live AI Agent Trace & Policy Inspector (7 cols) -->
+    <section class="lg:col-span-7 space-y-6">
+      <div class="glass rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+          <h2 class="font-bold text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-microchip text-indigo-400"></i> Recoup Live Execution & Policy Inspector
+          </h2>
+          <span id="engine-status" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono">Idle</span>
+        </div>
+
+        <!-- Step-by-Step Recovery Trace -->
+        <div class="space-y-4 font-sans" id="trace-container">
+          <!-- Default placeholder -->
+          <div class="p-6 rounded-xl border border-dashed border-slate-800 text-center text-slate-500 text-sm">
+            <i class="fa-solid fa-play-circle text-2xl mb-2 text-slate-600"></i>
+            <p>Select a scenario and click <b>Simulate Razorpay Payment</b> to watch the autonomous recovery loop execute live.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recovery History Ledger -->
+      <div class="glass rounded-2xl p-5 shadow-xl">
+        <h3 class="font-bold text-slate-200 text-sm mb-3 flex items-center justify-between">
+          <span><i class="fa-solid fa-list-check text-blue-400 mr-2"></i> Real-Time Audit Trail</span>
+          <span class="text-xs text-slate-500 font-normal">Auto-updating</span>
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="p-2.5">TX ID</th>
+                <th class="p-2.5">Customer</th>
+                <th class="p-2.5">Amount</th>
+                <th class="p-2.5">AI Action</th>
+                <th class="p-2.5">Policy</th>
+                <th class="p-2.5">Status</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body" class="divide-y divide-slate-800/60">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let currentProd = {
+      amount: 3499,
+      name: 'Pro Annual Plan',
+      orderId: 'order_pro_8801',
+      customerName: 'Rahul Verma',
+      phone: '9876543210',
+      tier: 'standard',
+      cltv: 12000
+    };
+
+    let totalRisk = 0;
+    let totalRecovered = 0;
+
+    function selectProduct(amount, name, orderId, customerName, phone, tier, cltv) {
+      currentProd = { amount, name, orderId, customerName, phone, tier, cltv };
+      document.querySelectorAll('.prod-btn').forEach(b => b.classList.replace('border-blue-500/40', 'border-slate-700'));
+      if (amount === 3499) {
+        document.getElementById('prod-1').classList.replace('border-slate-700', 'border-blue-500/40');
+      } else {
+        document.getElementById('prod-2').classList.replace('border-slate-700', 'border-blue-500/40');
+      }
+      document.getElementById('cust-phone-label').innerText = '+91 ' + phone;
+    }
+
+    async function triggerPaymentFailure() {
+      const mode = document.getElementById('failure-mode').value;
+      const btn = document.getElementById('btn-trigger');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing Razorpay Webhook...`;
+      document.getElementById('engine-status').innerHTML = `<span class="text-amber-400 animate-pulse">● AI Diagnosing</span>`;
+
+      // Construct authentic Razorpay webhook payload
+      const txId = `pay_RZP_${Math.floor(100000 + Math.random() * 900000)}`;
+      const payload = {
+        entity: "event",
+        event: "payment.failed",
+        payload: {
+          payment: {
+            entity: {
+              id: txId,
+              amount: currentProd.amount * 100, // paise
+              currency: "INR",
+              status: "failed",
+              order_id: currentProd.orderId,
+              method: mode === 'bank_downtime' ? 'upi' : (mode === 'card_limit_exceeded' ? 'netbanking' : 'card'),
+              email: `${currentProd.customerName.toLowerCase().replace(/ /g, '')}@example.com`,
+              contact: `+91${currentProd.phone}`,
+              error_code: mode === 'bank_downtime' ? 'GATEWAY_ERROR' : 'BAD_REQUEST_ERROR',
+              error_reason: mode,
+              error_description: getErrorDesc(mode),
+              notes: {
+                customer_name: currentProd.customerName,
+                cltv_inr: currentProd.cltv.toString(),
+                tier: currentProd.tier
+              }
+            }
+          },
+          order: {
+            entity: { id: currentProd.orderId, amount: currentProd.amount * 100 }
+          }
+        }
+      };
+
+      totalRisk += currentProd.amount;
+      document.getElementById('metric-risk').innerText = `₹${totalRisk.toLocaleString('en-IN')}`;
+
+      try {
+        const res = await fetch('/webhook/razorpay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        renderExecutionTrace(txId, currentProd, mode, data);
+        renderWhatsAppNudge(currentProd, data, txId);
+        updateAuditTable();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-bolt"></i> Simulate Razorpay Payment & Failure`;
+        document.getElementById('engine-status').innerHTML = `<span class="text-emerald-400">● Completed</span>`;
+      }
+    }
+
+    function getErrorDesc(mode) {
+      switch(mode) {
+        case 'otp_expired': return 'Customer session expired during OTP 3DS authentication.';
+        case 'bank_downtime': return 'NPCI switch timed out during issuing bank communication.';
+        case 'card_expired': return 'Payment card validity date has passed (Expired 07/26).';
+        case 'insufficient_funds': return 'Account balance insufficient for automated subscription mandate.';
+        case 'card_limit_exceeded': return 'Single corporate netbanking transaction limit exceeded.';
+        default: return 'Payment failed at gateway.';
+      }
+    }
+
+    function renderExecutionTrace(txId, prod, mode, data) {
+      const container = document.getElementById('trace-container');
+      const isPermitted = data.execution?.is_permitted;
+      const action = data.enforced_action;
+      const plink = data.execution?.payment_link;
+
+      container.innerHTML = `
+        <div class="space-y-3 animate-fadeIn">
+          <!-- Step 1: Webhook Ingested -->
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-3">
+            <div class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
+            <div class="text-xs space-y-1 w-full">
+              <div class="flex justify-between font-semibold text-slate-200">
+                <span>Webhook Ingested: <span class="text-amber-400">${txId}</span></span>
+                <span class="text-slate-400">₹${prod.amount.toLocaleString('en-IN')}</span>
+              </div>
+              <p class="text-slate-400">Customer: <b class="text-white">${prod.customerName}</b> (${prod.tier.toUpperCase()}, CLTV: ₹${prod.cltv.toLocaleString('en-IN')})</p>
+              <div class="text-amber-300 font-mono text-[11px]">Reason: ${mode} (${getErrorDesc(mode)})</div>
+            </div>
+          </div>
+
+          <!-- Step 2: AI Reasoning -->
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30 flex items-start gap-3">
+            <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
+            <div class="text-xs space-y-1 w-full">
+              <div class="font-semibold text-indigo-300 flex justify-between">
+                <span>AI Recommendation: <b class="text-white">${data.ai_recommendation}</b></span>
+                <span class="text-emerald-400">granite4.1:8b (RTX GPU)</span>
+              </div>
+              <p class="text-slate-300 italic">"Diagnosed ${mode} on ${prod.tier} tier account. Formulated optimal bounded intervention."</p>
+            </div>
+          </div>
+
+          <!-- Step 3: Policy Guardrails -->
+          <div class="p-3.5 rounded-xl bg-slate-900 border ${isPermitted ? 'border-emerald-500/30' : 'border-amber-500/30'} flex items-start gap-3">
+            <div class="w-7 h-7 rounded-lg ${isPermitted ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'} flex items-center justify-center shrink-0 text-xs font-bold">3</div>
+            <div class="text-xs space-y-1 w-full">
+              <div class="flex justify-between font-semibold ${isPermitted ? 'text-emerald-300' : 'text-amber-300'}">
+                <span>Policy Verdict: <b>${isPermitted ? 'PERMITTED' : 'OVERRIDDEN'}</b></span>
+                <span class="font-mono text-[11px]">${data.execution?.policy_rule || 'RULE_VERIFIED'}</span>
+              </div>
+              <p class="text-slate-400 text-[11px]">Deterministic safety constraints enforced: max retries capped, zero hard-decline retries.</p>
+            </div>
+          </div>
+
+          <!-- Step 4: Final Enforced Action -->
+          <div class="p-3.5 rounded-xl bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-500/40 flex items-start gap-3">
+            <div class="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0 text-xs font-bold">4</div>
+            <div class="text-xs space-y-1 w-full">
+              <div class="font-semibold text-blue-200">Enforced Action: <span class="text-white uppercase font-bold">${action}</span></div>
+              ${plink ? `<div class="text-xs text-emerald-400 mt-1 font-mono">1-Click Razorpay Link: <a href="${plink.short_url}" target="_blank" class="underline">${plink.short_url}</a></div>` : ''}
+              ${data.execution?.retry_delay_seconds ? `<div class="text-xs text-amber-300 mt-1">Silent Retry Backoff: ${data.execution.retry_delay_seconds} seconds</div>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWhatsAppNudge(prod, data, txId) {
+      const container = document.getElementById('whatsapp-container');
+      const plink = data.execution?.payment_link;
+      const action = data.enforced_action;
+
+      if (plink) {
+        container.innerHTML = `
+          <div class="bg-emerald-950/60 border border-emerald-700/50 p-3.5 rounded-2xl rounded-tl-none space-y-2.5 text-xs text-slate-200 shadow-md">
+            <div class="flex items-center gap-1.5 text-emerald-400 font-semibold text-[11px]">
+              <i class="fa-solid fa-shield-check"></i> CloudScale via Razorpay
+            </div>
+            <p>Hi <b>${prod.customerName}</b>, we noticed your payment of <b>₹${prod.amount.toLocaleString('en-IN')}</b> for <i>${prod.name}</i> was interrupted. You can complete it in 1-click via UPI:</p>
+            
+            <a href="javascript:void(0)" onclick="completeCustomerPayment('${txId}', ${prod.amount})" class="block w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-center rounded-xl shadow transition text-xs">
+              <i class="fa-solid fa-lock mr-1"></i> Pay ₹${prod.amount.toLocaleString('en-IN')} with UPI (1-Click)
+            </a>
+            
+            <div class="text-[10px] text-slate-400 text-right">Just now • Encrypted via Razorpay</div>
+          </div>
+        `;
+      } else if (action === 'escalate_to_human') {
+        container.innerHTML = `
+          <div class="bg-indigo-950/60 border border-indigo-700/50 p-3.5 rounded-2xl text-xs text-slate-200">
+            <div class="text-indigo-400 font-bold mb-1">👤 White-Glove VIP Outreach</div>
+            <p>Assigned to dedicated merchant account manager for personal phone/invoice recovery.</p>
+          </div>
+        `;
+      } else if (action === 'immediate_stop') {
+        container.innerHTML = `
+          <div class="bg-rose-950/60 border border-rose-700/50 p-3.5 rounded-2xl text-xs text-slate-200">
+            <div class="text-rose-400 font-bold mb-1">🛑 Immediate Stop Enforced</div>
+            <p>Hard decline on card. Customer requested to update payment details manually (0 wasted retries).</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl text-xs text-slate-300">
+            <div class="text-blue-400 font-bold mb-1">⏳ Dynamic Backoff In Progress</div>
+            <p>Silent retry scheduled during bank off-peak window.</p>
+          </div>
+        `;
+      }
+    }
+
+    function completeCustomerPayment(txId, amount) {
+      totalRecovered += amount;
+      document.getElementById('metric-recovered').innerText = `₹${totalRecovered.toLocaleString('en-IN')}`;
+      
+      const container = document.getElementById('whatsapp-container');
+      container.innerHTML = `
+        <div class="bg-emerald-900/50 border border-emerald-500 p-4 rounded-2xl text-center space-y-2 animate-bounce">
+          <i class="fa-solid fa-circle-check text-emerald-400 text-3xl"></i>
+          <div class="font-bold text-white text-sm">Payment Recovered Successfully!</div>
+          <div class="text-xs text-emerald-200">₹${amount.toLocaleString('en-IN')} captured via Razorpay UPI Intent.</div>
+          <div class="text-[10px] text-slate-400">Webhook 'order.paid' fired • Revenue Protected</div>
+        </div>
+      `;
+      updateAuditTable();
+    }
+
+    async function updateAuditTable() {
+      try {
+        const res = await fetch('/api/audit-logs');
+        const data = await res.json();
+        const tbody = document.getElementById('audit-table-body');
+        if (!data.records || data.records.length === 0) return;
+
+        tbody.innerHTML = data.records.slice(-6).reverse().map(r => `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="p-2.5 font-mono text-amber-400">${r.transaction_id}</td>
+            <td class="p-2.5 text-white font-medium">${r.customer_name}</td>
+            <td class="p-2.5">₹${r.amount_inr.toLocaleString('en-IN')}</td>
+            <td class="p-2.5 font-semibold text-blue-400">${r.ai_decision?.recommended_action || '-'}</td>
+            <td class="p-2.5"><span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono">PERMITTED</span></td>
+            <td class="p-2.5 text-emerald-400 font-semibold">Active</td>
+          </tr>
+        `).join('');
+      } catch (e) {}
+    }
+
+    // Initial load
+    updateAuditTable();
+  </script>
+</body>
+</html>

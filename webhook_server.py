@@ -8,9 +8,12 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
+import os
 from datetime import datetime
 from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from rich.console import Console
 
@@ -29,7 +32,19 @@ from agent import RecoveryAgent
 from razorpay_client import RazorpayClient, RazorpayPaymentLinkResponse
 
 console = Console(force_terminal=True, safe_box=True)
-app = FastAPI(title="Recoup - Razorpay AI Revenue Recovery Engine", version="0.3.0")
+app = FastAPI(title="Recoup - Razorpay AI Revenue Recovery Engine", version="0.4.0")
+
+# Mount Static UI
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+@app.get("/")
+def serve_ui():
+    index_file = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"message": "Recoup API Active. Navigate to /docs for Swagger UI."}
 
 # Core Engine Singletons
 agent = RecoveryAgent(model_name="granite4.1:8b")
