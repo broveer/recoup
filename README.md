@@ -12,17 +12,21 @@ We follow an iterative daily release cycle culminating in the final submission:
 * **Day 1:** `v0.1.0` — Minimal AI Recovery Agent, Structured Decision Schema & Policy Guardrails
 * **Day 2:** `v0.2.0` — Synthetic Dataset Generator, Competent Non-AI Baseline, Comparative Evaluation Benchmark
 * **Day 3:** `v0.3.0` — Razorpay Test-Mode Connector, Live Webhook Receiver (`payment.failed`), 1-Click Payment Link Generator
-* **Day 4 (Current):** `v0.4.0` — Interactive Web Storefront, Razorpay Checkout Simulator UI, Live WhatsApp Recovery Nudge Widget
-* **Day 5–11:** `v0.5.0` $\rightarrow$ `v0.11.0` — Multi-channel execution, Human Escalation Dashboard, Video Demo Assets
+* **Day 4:** `v0.4.0` / `v0.4.1` — Interactive Neo-Brutalist Web Simulator & Dedicated Action Cards
+* **Day 5 (Current):** `v0.5.0` — VIP Human Escalation Desk, Live Comparative Benchmark Visualizer, and Multi-Rail Lift Breakdown
+* **Day 6–11:** `v0.6.0` $\rightarrow$ `v0.11.0` — Multi-channel execution, Test Suite, Demo Video Recording Package
 * **Day 12:** `v1.0.0` — Complete Final Submission
 
 ---
 
-## 🏛️ v0.4.0 Architecture
+## 🏛️ v0.5.0 Architecture
 
 ```text
-[Interactive Web Storefront (http://localhost:8000)]
-          ↓ (Simulate Payment Failure on Checkout)
+[Interactive Neo-Brutalist Suite (http://localhost:8000)]
+   ├── Tab 1: Live Checkout & Recovery Simulator (Razorpay 1-Click WhatsApp)
+   ├── Tab 2: VIP Human Escalation Queue (High-Ticket / Enterprise Guardrail)
+   └── Tab 3: Comparative Benchmark & Multi-Rail Visual Analytics (+34% Lift)
+          ↓
 [POST /webhook/razorpay (FastAPI)]  <-- Ingests `payment.failed` webhooks
           ↓
 [Context Assembler & AI Agent]      <-- Granite 4.1 8B on RTX GPU
@@ -31,21 +35,19 @@ We follow an iterative daily release cycle culminating in the final submission:
           ↓
 [Razorpay API Client]               <-- Generates 1-click Payment Links (`/v1/payment_links`)
           ↓
-[Interactive Customer WhatsApp Screen] <-- Simulated 1-Click UPI Recovery & Instant Payment
-          ↓
-[Real-Time Revenue Metrics Counter] <-- Dynamic update of Protected & Recovered Revenue
+[Live Metrics & Audit API]          <-- /api/metrics, /api/escalations, /api/benchmark-summary
 ```
 
 ---
 
-## 🚀 Quickstart (v0.4.0)
+## 🚀 Quickstart (v0.5.0)
 
 ### 1. Requirements
 * Python 3.10+
 * Dependencies: `fastapi`, `uvicorn`, `pydantic`, `httpx`, `rich`
 * Local GPU / Ollama model (`granite4.1:8b` or heuristic fallback)
 
-### 2. Launch the Interactive Web Storefront & Simulator
+### 2. Launch the Complete Neo-Brutalist Dashboard
 ```bash
 python -m uvicorn webhook_server:app --port 8000
 ```

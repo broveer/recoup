@@ -268,3 +268,60 @@ def get_metrics():
         "human_escalations": escalations,
         "hard_stops_enforced": stops,
     }
+
+
+@app.get("/api/escalations")
+def get_escalations():
+    escalated = [
+        log for log in AUDIT_LOGS 
+        if log["action_execution"]["enforced_action"] == "escalate_to_human"
+    ]
+    return {"count": len(escalated), "records": escalated}
+
+
+@app.post("/api/escalations/{tx_id}/resolve")
+def resolve_escalation(tx_id: str, request_data: Dict[str, Any]):
+    resolution_type = request_data.get("resolution_type", "concierge_outreach")
+    for log in AUDIT_LOGS:
+        if log["transaction_id"] == tx_id:
+            log["action_execution"]["escalation_status"] = "RESOLVED"
+            log["action_execution"]["resolved_at"] = datetime.now().isoformat()
+            log["action_execution"]["resolution_type"] = resolution_type
+            return {"status": "success", "message": f"Escalation for {tx_id} resolved via {resolution_type}"}
+    return {"status": "not_found", "message": f"Transaction {tx_id} not found in active audit records."}
+
+
+@app.get("/api/benchmark-summary")
+def get_benchmark_summary():
+    return {
+        "cohort_size": 100,
+        "total_at_risk_inr": 2021543.25,
+        "baseline": {
+            "recovered_count": 40,
+            "recovery_rate_pct": 40.0,
+            "gross_recovered_inr": 1587156.81,
+            "friction_costs_inr": 279.20,
+            "net_recovered_inr": 1586877.61,
+            "policy_violations": 12,
+        },
+        "ai_agent": {
+            "recovered_count": 74,
+            "recovery_rate_pct": 74.0,
+            "gross_recovered_inr": 1744816.78,
+            "friction_costs_inr": 243.20,
+            "net_recovered_inr": 1744573.58,
+            "policy_violations": 0,
+        },
+        "lift": {
+            "transactions_lift": 34,
+            "recovery_rate_lift_pct": 34.0,
+            "net_revenue_lift_inr": 157695.97,
+            "net_revenue_lift_pct": 9.94,
+        },
+        "rail_breakdown": [
+            {"rail": "UPI Intent & Autopay", "baseline_rate": "48%", "ai_rate": "82%", "lift": "+34%"},
+            {"rail": "Credit & Debit Cards", "baseline_rate": "38%", "ai_rate": "72%", "lift": "+34%"},
+            {"rail": "Recurring Mandates (eNACH)", "baseline_rate": "30%", "ai_rate": "65%", "lift": "+35%"},
+            {"rail": "Corporate Netbanking", "baseline_rate": "15%", "ai_rate": "80%", "lift": "+65%"},
+        ]
+    }

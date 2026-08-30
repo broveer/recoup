@@ -7,18 +7,18 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap');
     
     body {
       font-family: 'Space Grotesk', sans-serif;
-      background-color: #F8F9FA;
+      background-color: #F4F4F0;
     }
     .mono { font-family: 'JetBrains Mono', monospace; }
     
-    /* Neo-Brutalist Utilities */
+    /* Neo-Brutalist Design Tokens */
     .nb-box {
       border: 3px solid #000;
-      box-shadow: 6px 6px 0px 0px #000;
+      box-shadow: 5px 5px 0px 0px #000;
       background: #FFFFFF;
     }
     .nb-box-sm {
@@ -27,15 +27,15 @@
     }
     .nb-btn {
       border: 2px solid #000;
-      box-shadow: 4px 4px 0px 0px #000;
+      box-shadow: 3px 3px 0px 0px #000;
       transition: all 0.1s ease-in-out;
     }
     .nb-btn:hover {
       transform: translate(-1px, -1px);
-      box-shadow: 5px 5px 0px 0px #000;
+      box-shadow: 4px 4px 0px 0px #000;
     }
     .nb-btn:active {
-      transform: translate(3px, 3px);
+      transform: translate(2px, 2px);
       box-shadow: 1px 1px 0px 0px #000;
     }
     .nb-badge {
@@ -56,19 +56,27 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-2xl font-black uppercase tracking-tight">RECOUP</h1>
-            <span class="mono text-xs px-2 py-0.5 bg-black text-white font-bold rounded-none uppercase">v0.4.1</span>
+            <span class="mono text-xs px-2 py-0.5 bg-black text-white font-bold rounded-none uppercase">v0.5.0</span>
           </div>
           <p class="text-xs font-bold text-black uppercase tracking-wider">AI Revenue Recovery Engine for Razorpay Rails</p>
         </div>
       </div>
 
+      <!-- Tab Switcher -->
+      <div class="flex items-center gap-2 mono text-xs font-black">
+        <button onclick="switchTab('simulator')" id="tab-btn-simulator" class="nb-btn px-3.5 py-2 bg-black text-[#FFE500] border-2 border-black uppercase flex items-center gap-1.5">
+          <i class="fa-solid fa-bolt"></i> Simulator
+        </button>
+        <button onclick="switchTab('escalations')" id="tab-btn-escalations" class="nb-btn px-3.5 py-2 bg-white text-black border-2 border-black uppercase flex items-center gap-1.5">
+          <i class="fa-solid fa-user-shield"></i> VIP Escalations (<span id="escalations-badge-count">0</span>)
+        </button>
+        <button onclick="switchTab('benchmark')" id="tab-btn-benchmark" class="nb-btn px-3.5 py-2 bg-white text-black border-2 border-black uppercase flex items-center gap-1.5">
+          <i class="fa-solid fa-chart-line"></i> Benchmark & Lift
+        </button>
+      </div>
+
       <!-- Live Counters -->
-      <div class="flex items-center gap-4 text-xs font-bold mono">
-        <div class="nb-box-sm bg-white px-3 py-1.5 flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-          <span>GPU MODEL:</span>
-          <span class="text-blue-700 font-extrabold" id="model-label">granite4.1:8b</span>
-        </div>
+      <div class="flex items-center gap-3 text-xs font-bold mono">
         <div class="nb-box-sm bg-[#FF6B6B] text-white px-3 py-1.5">
           <span>AT RISK:</span>
           <span id="metric-risk" class="ml-1 text-sm font-black">₹0.00</span>
@@ -81,8 +89,8 @@
     </div>
   </header>
 
-  <!-- Main Work Area -->
-  <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
+  <!-- TAB 1: SIMULATOR VIEW -->
+  <main id="view-simulator" class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
 
     <!-- Column 1: Store & Checkout Simulator (5 cols) -->
     <section class="lg:col-span-5 space-y-6">
@@ -93,7 +101,7 @@
           <h2 class="font-black text-lg uppercase flex items-center gap-2">
             <i class="fa-solid fa-cart-shopping text-blue-600"></i> Checkout Simulator
           </h2>
-          <span class="mono text-xs font-bold bg-[#E2E8F0] px-2 py-1 border border-black">DEMO STORE</span>
+          <span class="mono text-xs font-bold bg-[#E2E8F0] px-2 py-1 border border-black">RAZORPAY DEMO</span>
         </div>
 
         <!-- Plan Selection -->
@@ -204,6 +212,91 @@
 
   </main>
 
+  <!-- TAB 2: VIP HUMAN ESCALATION DESK -->
+  <main id="view-escalations" class="max-w-7xl mx-auto p-6 hidden mt-2">
+    <div class="nb-box p-6 bg-white space-y-6">
+      <div class="flex items-center justify-between border-b-3 border-black pb-4">
+        <div>
+          <h2 class="text-2xl font-black uppercase flex items-center gap-2">
+            <i class="fa-solid fa-user-shield text-purple-600"></i> VIP Human Escalation Queue
+          </h2>
+          <p class="text-xs font-bold text-slate-600 uppercase mt-1">High-Value (≥ ₹50,000) & Flagged Enterprise Accounts Protected by Deterministic Guardrail Policies</p>
+        </div>
+        <button onclick="fetchEscalations()" class="nb-btn px-4 py-2 bg-[#FFE500] font-black text-xs uppercase flex items-center gap-2">
+          <i class="fa-solid fa-arrows-rotate"></i> Refresh Queue
+        </button>
+      </div>
+
+      <div id="escalations-list" class="space-y-4">
+        <!-- Dynamically rendered escalations -->
+      </div>
+    </div>
+  </main>
+
+  <!-- TAB 3: BENCHMARK & ANALYTICS VIEW -->
+  <main id="view-benchmark" class="max-w-7xl mx-auto p-6 hidden mt-2 space-y-6">
+    
+    <!-- Top Highlights Banner -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="nb-box p-4 bg-[#FFE500]">
+        <div class="text-xs font-black uppercase text-black">Total Evaluated</div>
+        <div class="text-3xl font-black text-black mt-1">100 Cases</div>
+        <div class="mono text-[10px] font-bold text-slate-800 mt-1">Held-Out Indian Rail Dataset</div>
+      </div>
+      <div class="nb-box p-4 bg-white">
+        <div class="text-xs font-black uppercase text-slate-600">Baseline Recovery</div>
+        <div class="text-3xl font-black text-slate-800 mt-1">40.0%</div>
+        <div class="mono text-[10px] font-bold text-slate-500 mt-1">₹15,86,877 Net Recovered</div>
+      </div>
+      <div class="nb-box p-4 bg-[#00F59B]">
+        <div class="text-xs font-black uppercase text-emerald-900">Recoup AI Recovery</div>
+        <div class="text-3xl font-black text-black mt-1">74.0%</div>
+        <div class="mono text-[10px] font-bold text-emerald-950 mt-1">₹17,44,573 Net Recovered</div>
+      </div>
+      <div class="nb-box p-4 bg-[#FF6B6B] text-white">
+        <div class="text-xs font-black uppercase">Net Economic Lift</div>
+        <div class="text-3xl font-black mt-1">+₹1.57L</div>
+        <div class="mono text-[10px] font-bold mt-1">+9.9% Net Revenue Lift (+34% Rate)</div>
+      </div>
+    </div>
+
+    <!-- Comparative Visual Bars by Payment Rail -->
+    <div class="nb-box p-6 bg-white space-y-6">
+      <div class="border-b-2 border-black pb-3">
+        <h3 class="text-lg font-black uppercase flex items-center gap-2">
+          <i class="fa-solid fa-chart-simple text-blue-600"></i> Recovery Success Rate by Indian Payment Rail
+        </h3>
+        <p class="text-xs font-bold text-slate-600 uppercase">Non-AI Rule Baseline vs Recoup AI Agent</p>
+      </div>
+
+      <div class="space-y-5" id="rail-bars-container">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- Safety & Policy Compliance Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="nb-box p-5 bg-[#E6F4EA]">
+        <h4 class="font-black text-sm uppercase text-emerald-900 mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-circle-check text-emerald-600"></i> 100% Policy Guardrail Compliance
+        </h4>
+        <p class="text-xs font-bold text-slate-800 leading-relaxed">
+          The Non-AI Baseline committed <b>12 policy violations</b> by blindly attempting automated retries on corporate high-ticket and hard-declined transactions. 
+          Recoup AI maintained a <b>100% safety record with 0 violations</b>.
+        </p>
+      </div>
+      <div class="nb-box p-5 bg-[#FFFBEB]">
+        <h4 class="font-black text-sm uppercase text-amber-900 mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-coins text-amber-600"></i> Direct Cost & Fee Waste Elimination
+        </h4>
+        <p class="text-xs font-bold text-slate-800 leading-relaxed">
+          By detecting permanent card declines and enforcing strict immediate halts, Recoup reduced merchant bank penalty fees from <b>₹279.20</b> to <b>₹243.20</b>, delivering pure profit directly to the bottom line.
+        </p>
+      </div>
+    </div>
+
+  </main>
+
   <script>
     let currentProd = {
       amount: 3499,
@@ -217,6 +310,22 @@
 
     let totalRisk = 0;
     let totalRecovered = 0;
+
+    function switchTab(tabId) {
+      document.getElementById('view-simulator').classList.add('hidden');
+      document.getElementById('view-escalations').classList.add('hidden');
+      document.getElementById('view-benchmark').classList.add('hidden');
+      
+      document.getElementById('tab-btn-simulator').className = 'nb-btn px-3.5 py-2 bg-white text-black border-2 border-black uppercase flex items-center gap-1.5';
+      document.getElementById('tab-btn-escalations').className = 'nb-btn px-3.5 py-2 bg-white text-black border-2 border-black uppercase flex items-center gap-1.5';
+      document.getElementById('tab-btn-benchmark').className = 'nb-btn px-3.5 py-2 bg-white text-black border-2 border-black uppercase flex items-center gap-1.5';
+
+      document.getElementById(`view-${tabId}`).classList.remove('hidden');
+      document.getElementById(`tab-btn-${tabId}`).className = 'nb-btn px-3.5 py-2 bg-black text-[#FFE500] border-2 border-black uppercase flex items-center gap-1.5';
+
+      if (tabId === 'escalations') fetchEscalations();
+      if (tabId === 'benchmark') renderBenchmarkCharts();
+    }
 
     function selectProduct(amount, name, orderId, customerName, phone, tier, cltv) {
       currentProd = { amount, name, orderId, customerName, phone, tier, cltv };
@@ -278,10 +387,10 @@
         });
         const data = await res.json();
         
-        // Render 4-step trace & WhatsApp screen
         renderExecutionTrace(txId, currentProd, mode, data);
         renderWhatsAppNudge(currentProd, data, txId);
         updateAuditTable();
+        updateEscalationBadge();
       } catch (err) {
         console.error("Webhook Error:", err);
       } finally {
@@ -541,8 +650,131 @@
       } catch (e) {}
     }
 
+    async function updateEscalationBadge() {
+      try {
+        const res = await fetch('/api/escalations');
+        const data = await res.json();
+        document.getElementById('escalations-badge-count').innerText = data.count || 0;
+      } catch (e) {}
+    }
+
+    async function fetchEscalations() {
+      const container = document.getElementById('escalations-list');
+      try {
+        const res = await fetch('/api/escalations');
+        const data = await res.json();
+        updateEscalationBadge();
+
+        if (!data.records || data.records.length === 0) {
+          container.innerHTML = `
+            <div class="border-2 border-dashed border-slate-300 p-12 text-center bg-slate-50">
+              <i class="fa-solid fa-shield-heart text-3xl text-emerald-600 mb-2"></i>
+              <div class="font-black text-sm uppercase text-slate-700">All VIP Accounts Healthy</div>
+              <p class="text-xs text-slate-500 mt-1">No pending high-value transactions requiring white-glove manual outreach.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = data.records.map(r => `
+          <div class="nb-box p-4 bg-[#FFFBEB] space-y-3">
+            <div class="flex flex-wrap items-center justify-between border-b-2 border-black pb-2">
+              <div class="flex items-center gap-2">
+                <span class="mono font-black text-blue-700 text-sm">${r.transaction_id}</span>
+                <span class="nb-badge px-2 py-0.5 bg-[#FF6B6B] text-white font-black text-[10px] uppercase">₹${r.amount_inr.toLocaleString('en-IN')}</span>
+                <span class="nb-badge px-2 py-0.5 bg-purple-700 text-white font-black text-[10px] uppercase">VIP ENTERPRISE</span>
+              </div>
+              <span class="mono text-xs font-bold text-slate-600">${new Date(r.timestamp).toLocaleTimeString()}</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div><b>Account:</b> ${r.customer_name}</div>
+              <div><b>Failure Reason:</b> ${r.error_code}</div>
+              <div class="mono"><b>Status:</b> ${r.action_execution?.escalation_status || 'PENDING OUTREACH'}</div>
+            </div>
+
+            <div class="p-2.5 bg-white border-2 border-black text-xs italic font-semibold text-slate-800">
+              "${r.ai_decision?.reasoning_summary || 'High-value transaction exceeds automated safety threshold.'}"
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 pt-1">
+              <button onclick="resolveEscalation('${r.transaction_id}', 'Dispatch Custom Razorpay Invoice')" class="nb-btn px-3 py-2 bg-[#00F59B] text-black font-black text-xs uppercase flex items-center gap-1.5">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Issue Custom Invoice
+              </button>
+              <button onclick="resolveEscalation('${r.transaction_id}', 'Executive WhatsApp Outreach')" class="nb-btn px-3 py-2 bg-[#FFE500] text-black font-black text-xs uppercase flex items-center gap-1.5">
+                <i class="fa-brands fa-whatsapp"></i> WhatsApp Concierge
+              </button>
+              <button onclick="resolveEscalation('${r.transaction_id}', 'Direct Phone Call')" class="nb-btn px-3 py-2 bg-white text-black font-black text-xs uppercase flex items-center gap-1.5">
+                <i class="fa-solid fa-phone"></i> Log Phone Outreach
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function resolveEscalation(txId, type) {
+      try {
+        await fetch(`/api/escalations/${txId}/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resolution_type: type })
+        });
+        alert(`✅ Escalation resolved via: ${type}`);
+        fetchEscalations();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function renderBenchmarkCharts() {
+      const container = document.getElementById('rail-bars-container');
+      try {
+        const res = await fetch('/api/benchmark-summary');
+        const data = await res.json();
+        
+        container.innerHTML = data.rail_breakdown.map(b => `
+          <div class="space-y-1.5">
+            <div class="flex justify-between font-black text-xs uppercase">
+              <span>${b.rail}</span>
+              <span class="mono text-emerald-800 bg-[#00F59B] px-1.5 py-0.5 border border-black font-bold">LIFT: ${b.lift}</span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 items-center">
+              <!-- Baseline Bar -->
+              <div>
+                <div class="flex justify-between text-[11px] font-bold text-slate-600 mb-0.5">
+                  <span>Non-AI Baseline</span>
+                  <span>${b.baseline_rate}</span>
+                </div>
+                <div class="w-full bg-slate-200 h-5 border-2 border-black">
+                  <div class="bg-slate-400 h-full" style="width: ${b.baseline_rate}"></div>
+                </div>
+              </div>
+
+              <!-- AI Agent Bar -->
+              <div>
+                <div class="flex justify-between text-[11px] font-bold text-black mb-0.5">
+                  <span>Recoup AI Agent</span>
+                  <span class="text-emerald-700 font-black">${b.ai_rate}</span>
+                </div>
+                <div class="w-full bg-slate-200 h-5 border-2 border-black">
+                  <div class="bg-[#00F59B] h-full" style="width: ${b.ai_rate}"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     // Initial load
     updateAuditTable();
+    updateEscalationBadge();
   </script>
 </body>
 </html>
