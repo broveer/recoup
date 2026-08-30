@@ -65,7 +65,8 @@ class RecoveryAgent:
     def decide(self, context: FailedPaymentContext) -> AgentDecision:
         """Analyzes context and produces structured AgentDecision via Ollama or heuristic fallback."""
         try:
-            with httpx.Client(timeout=httpx.Timeout(60.0, connect=3.0)) as client:
+            print(f"🤖 [Ollama] Sending context for {context.transaction_id} to {self.model_name} on GPU...")
+            with httpx.Client(timeout=httpx.Timeout(60.0, connect=5.0)) as client:
                 payload = {
                     "model": self.model_name,
                     "system": self._build_system_prompt(),
@@ -76,10 +77,10 @@ class RecoveryAgent:
                 response = client.post(f"{self.host}/api/generate", json=payload)
                 if response.status_code == 200:
                     raw_text = response.json().get("response", "{}").strip()
-                    # Strip possible markdown code blocks if returned
                     clean_json = re.sub(r"^```json\s*", "", raw_text, flags=re.MULTILINE)
                     clean_json = re.sub(r"^```\s*", "", clean_json, flags=re.MULTILINE).strip()
                     data = json.loads(clean_json)
+                    print(f"✅ [Ollama] {self.model_name} returned decision: {data.get('recommended_action')}")
                     return AgentDecision(
                         transaction_id=context.transaction_id,
                         recommended_action=RecoveryActionType(data.get("recommended_action", "alternative_payment_link")),
@@ -90,10 +91,14 @@ class RecoveryAgent:
                         customer_message=data.get("customer_message"),
                         reasoning_summary=data.get("reasoning_summary", "Live AI Agent analyzed payment context."),
                         requires_human_approval=bool(data.get("requires_human_approval", False)),
+                        decision_model=f"ollama-{self.model_name}",
                     )
-        except Exception:
-            pass
+                else:
+                    print(f"⚠️ [Ollama] Returned non-200 status: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"⚠️ [Ollama] Error communicating with local LLM: {e}")
 
+        print("ℹ️ [Ollama] Using deterministic fallback rules.")
         return self._heuristic_fallback(context)
 
     def _heuristic_fallback(self, context: FailedPaymentContext) -> AgentDecision:

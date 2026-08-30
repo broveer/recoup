@@ -204,8 +204,8 @@ async def handle_razorpay_webhook(request: Request):
         "customer_name": cust_name,
         "amount_inr": amount_inr,
         "error_code": failure_code.value,
-        "ai_decision": decision.model_dump(),
-        "policy_verdict": verdict.model_dump(),
+        "ai_decision": decision.model_dump(mode="json"),
+        "policy_verdict": verdict.model_dump(mode="json"),
         "action_execution": action_result,
     }
     AUDIT_LOGS.append(audit_entry)
@@ -218,9 +218,9 @@ async def handle_razorpay_webhook(request: Request):
         "ai_recommendation": decision.recommended_action.value,
         "enforced_action": verdict.enforced_action.value,
         "execution": action_result,
-        "ai_decision": decision.model_dump(),
-        "policy_verdict": verdict.model_dump(),
-        "context": context.model_dump(),
+        "ai_decision": decision.model_dump(mode="json"),
+        "policy_verdict": verdict.model_dump(mode="json"),
+        "context": context.model_dump(mode="json"),
     }
 
 
