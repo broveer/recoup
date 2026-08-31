@@ -56,7 +56,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-2xl font-black uppercase tracking-tight">RECOUP</h1>
-            <span class="mono text-xs px-2 py-0.5 bg-black text-white font-bold rounded-none uppercase">v0.5.0</span>
+            <span class="mono text-xs px-2 py-0.5 bg-black text-white font-bold rounded-none uppercase">v0.6.0</span>
           </div>
           <p class="text-xs font-bold text-black uppercase tracking-wider">AI Revenue Recovery Engine for Razorpay Rails</p>
         </div>
@@ -512,7 +512,7 @@
 
       if (action === 'smart_dunning_schedule') {
         container.innerHTML = `
-          <div class="nb-box-sm bg-white p-3.5 space-y-3">
+          <div class="nb-box-sm bg-white p-3.5 space-y-3" id="whatsapp-thread">
             <div class="flex items-center justify-between border-b-2 border-black pb-1.5 bg-[#FFFBEB] p-2">
               <span class="font-black text-[11px] uppercase text-amber-900 flex items-center gap-1">
                 <i class="fa-solid fa-calendar-check text-amber-600"></i> Smart Mandate Dunning Active
@@ -526,7 +526,7 @@
               <p class="text-[11px] text-slate-700">Blind immediate retries paused to prevent bounce charges. The mandate remains fully active.</p>
             </div>
             
-            <p class="text-xs font-semibold text-slate-800 leading-relaxed">
+            <p class="text-xs font-semibold text-slate-800 leading-relaxed" id="whatsapp-primary-msg">
               "Hi <b>${prod.customerName}</b>, your subscription debit of <b>₹${prod.amount.toLocaleString('en-IN')}</b> was paused due to low balance. We'll automatically re-attempt on salary day. If you prefer to pay now using an alternate account, click below:"
             </p>
 
@@ -535,6 +535,25 @@
               <i class="fa-solid fa-bolt text-sm"></i> Pay ₹${prod.amount.toLocaleString('en-IN')} Now with Alternate UPI
             </button>
             ` : ''}
+
+            <!-- WhatsApp Interactive Quick-Reply Chips -->
+            <div class="mt-3 pt-2 border-t-2 border-black space-y-1.5">
+              <div class="text-[10px] font-black uppercase text-slate-700">Customer Quick-Reply Chips (WABA Standards):</div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'why_failed', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#FFFBEB] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-question text-blue-600"></i> Why did it fail?
+                </button>
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'add_gst', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#F3E8FF] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-building text-purple-600"></i> Add GST Invoice
+                </button>
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'remind_later', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#E0F2FE] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-clock text-sky-600"></i> Remind at 8 PM
+                </button>
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'cancel_opt_out', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#FFE4E6] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-ban text-rose-600"></i> Cancel / Opt-Out
+                </button>
+              </div>
+            </div>
             
             <div class="mono text-[10px] text-center text-slate-500 uppercase">
               ${plink ? `Backup Razorpay Link: ${plink.short_url}` : 'Subscription ID: sub_active_9901'}
@@ -543,7 +562,7 @@
         `;
       } else if (action === 'alternative_payment_link' && plink) {
         container.innerHTML = `
-          <div class="nb-box-sm bg-white p-3.5 space-y-3">
+          <div class="nb-box-sm bg-white p-3.5 space-y-3" id="whatsapp-thread">
             <div class="flex items-center justify-between border-b border-slate-300 pb-1.5">
               <span class="font-black text-[11px] uppercase text-emerald-800 flex items-center gap-1">
                 <i class="fa-solid fa-circle-check text-emerald-600"></i> CloudScale Verified Merchant
@@ -551,13 +570,32 @@
               <span class="text-[10px] font-bold text-slate-500">Just Now</span>
             </div>
             
-            <p class="text-xs font-semibold text-slate-800 leading-relaxed">
+            <p class="text-xs font-semibold text-slate-800 leading-relaxed" id="whatsapp-primary-msg">
               ${customMsg}
             </p>
 
             <button onclick="completeCustomerPayment('${txId}', ${prod.amount})" class="nb-btn w-full py-3 bg-[#00F59B] hover:bg-[#00E08F] text-black font-black uppercase text-xs flex items-center justify-center gap-2">
               <i class="fa-solid fa-lock text-sm"></i> Pay ₹${prod.amount.toLocaleString('en-IN')} with UPI (1-Click)
             </button>
+
+            <!-- WhatsApp Interactive Quick-Reply Chips -->
+            <div class="mt-3 pt-2 border-t-2 border-black space-y-1.5">
+              <div class="text-[10px] font-black uppercase text-slate-700">Customer Quick-Reply Chips (WABA Standards):</div>
+              <div class="grid grid-cols-2 gap-1.5">
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'why_failed', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#FFFBEB] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-question text-blue-600"></i> Why did it fail?
+                </button>
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'add_gst', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#F3E8FF] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-building text-purple-600"></i> Add GST Invoice
+                </button>
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'remind_later', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#E0F2FE] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-clock text-sky-600"></i> Remind at 8 PM
+                </button>
+                <button onclick="sendWhatsAppQuickAction('${txId}', 'cancel_opt_out', '${prod.customerName}', ${prod.amount}, '${mode}')" class="nb-btn px-2 py-1.5 bg-[#FFE4E6] text-[10px] font-black uppercase text-left truncate flex items-center gap-1">
+                  <i class="fa-solid fa-ban text-rose-600"></i> Cancel / Opt-Out
+                </button>
+              </div>
+            </div>
             
             <div class="mono text-[10px] text-center text-slate-500 uppercase">
               Razorpay Secured Link: ${plink.short_url}
@@ -611,6 +649,63 @@
             <div class="mono text-[10px] text-blue-900 bg-white p-2 border border-blue-900">Zero customer friction required • Auto-monitoring gateway health</div>
           </div>
         `;
+      }
+    }
+
+    async function sendWhatsAppQuickAction(txId, actionType, customerName, amount, errorCode) {
+      const thread = document.getElementById('whatsapp-thread');
+      if (!thread) return;
+
+      // Label
+      let promptText = "";
+      if (actionType === 'why_failed') promptText = "❓ Why did my payment fail?";
+      if (actionType === 'add_gst') promptText = "🏢 Can I get a GST Tax Invoice?";
+      if (actionType === 'remind_later') promptText = "⏰ Please remind me at 8 PM today";
+      if (actionType === 'cancel_opt_out') promptText = "🛑 Cancel my order and stop reminders";
+
+      // Append customer bubble
+      const userBubble = document.createElement('div');
+      userBubble.className = "p-2.5 bg-[#DCF8C6] border-2 border-black text-xs font-bold text-slate-900 ml-6 rounded-none text-right";
+      userBubble.innerText = promptText;
+      thread.appendChild(userBubble);
+
+      try {
+        const res = await fetch('/api/whatsapp/interactive-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transaction_id: txId,
+            action_type: actionType,
+            customer_name: customerName,
+            amount_inr: amount,
+            error_code: errorCode,
+            gstin: '29AABCU9603R1Z2'
+          })
+        });
+        const data = await res.json();
+
+        // Append AI response bubble
+        const aiBubble = document.createElement('div');
+        aiBubble.className = "p-3 bg-white border-2 border-black text-xs space-y-2 mr-4";
+        aiBubble.innerHTML = `
+          <div class="flex items-center gap-1.5 text-[10px] font-black uppercase text-emerald-800">
+            <i class="fa-solid fa-robot"></i> CloudScale AI Assistant
+          </div>
+          <p class="text-slate-800 font-medium leading-relaxed">${data.reply_message}</p>
+          ${data.payment_link ? `
+            <button onclick="completeCustomerPayment('${txId}', ${amount})" class="nb-btn w-full py-2 bg-[#00F59B] text-black font-black uppercase text-[11px] flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-file-invoice"></i> Pay with GST Invoice (${data.gstin_applied})
+            </button>
+          ` : ''}
+          ${actionType === 'cancel_opt_out' ? `
+            <div class="bg-[#FFE4E6] p-1.5 border border-red-700 text-[10px] font-black text-red-900 mono uppercase">
+              🛑 Policy Enforced: TRAI Anti-Spam Zero Contact Locked
+            </div>
+          ` : ''}
+        `;
+        thread.appendChild(aiBubble);
+      } catch (err) {
+        console.error(err);
       }
     }
 

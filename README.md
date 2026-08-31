@@ -13,17 +13,19 @@ We follow an iterative daily release cycle culminating in the final submission:
 * **Day 2:** `v0.2.0` — Synthetic Dataset Generator, Competent Non-AI Baseline, Comparative Evaluation Benchmark
 * **Day 3:** `v0.3.0` — Razorpay Test-Mode Connector, Live Webhook Receiver (`payment.failed`), 1-Click Payment Link Generator
 * **Day 4:** `v0.4.0` / `v0.4.1` — Interactive Neo-Brutalist Web Simulator & Dedicated Action Cards
-* **Day 5 (Current):** `v0.5.0` — VIP Human Escalation Desk, Live Comparative Benchmark Visualizer, and Multi-Rail Lift Breakdown
-* **Day 6–11:** `v0.6.0` $\rightarrow$ `v0.11.0` — Multi-channel execution, Test Suite, Demo Video Recording Package
+* **Day 5:** `v0.5.0` — VIP Human Escalation Desk, Live Comparative Benchmark Visualizer, and Multi-Rail Lift Breakdown
+* **Day 6 (Current):** `v0.6.0` — WhatsApp Interactive Quick-Reply Chips (WABA Standards), Zero-Jailbreak Multi-Turn Agentic Actions
+* **Day 7–11:** `v0.7.0` $\rightarrow$ `v0.11.0` — Automated Pytest Suite, Demo Video Recording Package
 * **Day 12:** `v1.0.0` — Complete Final Submission
 
 ---
 
-## 🏛️ v0.5.0 Architecture
+## 🏛️ v0.6.0 Architecture
 
 ```text
 [Interactive Neo-Brutalist Suite (http://localhost:8000)]
-   ├── Tab 1: Live Checkout & Recovery Simulator (Razorpay 1-Click WhatsApp)
+   ├── Tab 1: Live Checkout & Recovery Simulator (WABA Interactive Quick-Reply Chips)
+   │     └── [ ⚡ Pay UPI (1-Click) ] [ ❓ Why did it fail? ] [ 🏢 Add GST ] [ ⏰ Remind 8 PM ] [ 🛑 Opt-Out ]
    ├── Tab 2: VIP Human Escalation Queue (High-Ticket / Enterprise Guardrail)
    └── Tab 3: Comparative Benchmark & Multi-Rail Visual Analytics (+34% Lift)
           ↓
@@ -31,16 +33,16 @@ We follow an iterative daily release cycle culminating in the final submission:
           ↓
 [Context Assembler & AI Agent]      <-- Granite 4.1 8B on RTX GPU
           ↓
-[Deterministic Policy Engine]       <-- Financial Safety Guardrails
+[Deterministic Policy Engine]       <-- Financial Safety Guardrails (Zero-Jailbreak Protection)
           ↓
 [Razorpay API Client]               <-- Generates 1-click Payment Links (`/v1/payment_links`)
           ↓
-[Live Metrics & Audit API]          <-- /api/metrics, /api/escalations, /api/benchmark-summary
+[Live Metrics & Audit API]          <-- /api/metrics, /api/escalations, /api/benchmark-summary, /api/whatsapp/interactive-action
 ```
 
 ---
 
-## 🚀 Quickstart (v0.5.0)
+## 🚀 Quickstart (v0.6.0)
 
 ### 1. Requirements
 * Python 3.10+
