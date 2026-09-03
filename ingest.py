@@ -16,10 +16,10 @@ Usage
   python ingest.py --merge               # show the review diff vs the current playbook
   python ingest.py --merge --yes         # apply added/changed entries to recovery_playbook.json
 
-Environment (live mode, OpenAI-compatible chat completions)
-  RECOUP_CURATOR_BASE_URL   e.g. https://<provider>/v1
-  RECOUP_CURATOR_API_KEY    secret (never committed; .env is git-ignored)
-  RECOUP_CURATOR_MODEL      e.g. the Gemma 26B-A4B model id from the provider
+Environment (live mode — Hyper by Charm, an OpenAI-compatible endpoint)
+  HYPER_API_KEY             secret (never committed; .env is git-ignored)
+  RECOUP_CURATOR_MODEL      the Gemma model id on Hyper (e.g. gemma-...); required for live runs
+  RECOUP_CURATOR_BASE_URL   optional override (default https://hyper.charm.sh/v1)
 """
 
 import argparse
@@ -31,8 +31,6 @@ import glob
 from datetime import date
 from typing import Any, Dict, List
 
-import httpx
-
 import playbook
 from models import FailureCategory, FailureCode, RecoveryActionType
 
@@ -43,6 +41,24 @@ if sys.platform == "win32":
         pass
 
 HERE = os.path.dirname(__file__)
+
+
+def _load_dotenv() -> None:
+    """Minimal .env loader (no dependency). .env is git-ignored; values already in the
+    environment win. Lets `python ingest.py --merge` pick up HYPER_API_KEY from a file."""
+    path = os.path.join(HERE, ".env")
+    if not os.path.exists(path):
+        return
+    for line in open(path, "r", encoding="utf-8"):
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
 SOURCES_DIR = os.path.join(HERE, "data", "sources")
 PROPOSED_PATH = os.path.join(HERE, "data", "playbook_proposed.json")
 PLAYBOOK_PATH = os.path.join(HERE, "data", "recovery_playbook.json")
@@ -103,35 +119,43 @@ def load_sources() -> List[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------- curator calls
+HYPER_BASE_URL = "https://hyper.charm.sh/v1"  # Hyper by Charm — OpenAI-compatible
+
+
+def _curator_client():
+    """OpenAI client pointed at Hyper. Imported lazily so --offline needs no dependency."""
+    try:
+        from openai import OpenAI
+    except ImportError:
+        raise SystemExit("Live curator needs the 'openai' package: pip install openai  (or run --offline)")
+    key = os.getenv("HYPER_API_KEY") or os.getenv("RECOUP_CURATOR_API_KEY")
+    if not key:
+        raise SystemExit("Set HYPER_API_KEY (Hyper by Charm), or run with --offline.")
+    base = os.getenv("RECOUP_CURATOR_BASE_URL", HYPER_BASE_URL)
+    return OpenAI(base_url=base, api_key=key, timeout=120.0)
+
+
 def call_curator_live(source_text: str) -> Dict[str, Any]:
-    base = os.getenv("RECOUP_CURATOR_BASE_URL", "").rstrip("/")
-    key = os.getenv("RECOUP_CURATOR_API_KEY", "")
-    model = os.getenv("RECOUP_CURATOR_MODEL", "")
-    if not (base and key and model):
+    model = os.getenv("RECOUP_CURATOR_MODEL")
+    if not model:
         raise SystemExit(
-            "Live curator needs RECOUP_CURATOR_BASE_URL, RECOUP_CURATOR_API_KEY and "
-            "RECOUP_CURATOR_MODEL. Set them, or run with --offline."
+            "Set RECOUP_CURATOR_MODEL to the Gemma model id on Hyper "
+            "(see https://hyper.charm.sh), or run with --offline."
         )
-    payload = {
-        "model": model,
-        "temperature": 0.2,
-        "messages": [
+    client = _curator_client()
+    kwargs = dict(
+        model=model,
+        temperature=0.2,
+        messages=[
             {"role": "system", "content": CURATOR_SYSTEM},
             {"role": "user", "content": source_text},
         ],
-        "response_format": {"type": "json_object"},
-    }
-    with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
-        r = client.post(f"{base}/chat/completions",
-                        headers={"Authorization": f"Bearer {key}"}, json=payload)
-    if r.status_code != 200:
-        # retry once without response_format for providers that reject it
-        payload.pop("response_format", None)
-        with httpx.Client(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
-            r = client.post(f"{base}/chat/completions",
-                            headers={"Authorization": f"Bearer {key}"}, json=payload)
-        r.raise_for_status()
-    content = r.json()["choices"][0]["message"]["content"]
+    )
+    try:
+        resp = client.chat.completions.create(response_format={"type": "json_object"}, **kwargs)
+    except Exception:
+        resp = client.chat.completions.create(**kwargs)  # endpoint may not accept response_format
+    content = resp.choices[0].message.content
     content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip(), flags=re.MULTILINE)
     return json.loads(content)
 

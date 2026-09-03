@@ -75,8 +75,8 @@ python ingest.py --offline --merge
 > without a human running `--merge --yes`. New failure modes it can't map become
 > `proposed_new_codes` — a human edits the taxonomy and the guardrails, never the pipeline."
 
-*(If the live Gemma key is configured: run `python ingest.py --merge` instead — show real
-proposed changes.)*
+*(Live curator on Hyper by Charm: `export HYPER_API_KEY=... RECOUP_CURATOR_MODEL=<gemma-id>`
+then `python ingest.py --merge` — show real proposed changes from Gemma.)*
 
 ---
 

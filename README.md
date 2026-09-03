@@ -87,9 +87,10 @@ Writes `data/benchmark_summary.json` (served at `/api/benchmark-summary`).
 ```bash
 python ingest.py --offline --merge             # no network: stub curator + review diff
 ```
-For the live Gemma curator, set `RECOUP_CURATOR_BASE_URL`, `RECOUP_CURATOR_API_KEY`,
-`RECOUP_CURATOR_MODEL` (kept in a git-ignored `.env`), then:
+For the live curator (Gemma on **Hyper by Charm**, an OpenAI-compatible endpoint), set
+`HYPER_API_KEY` and `RECOUP_CURATOR_MODEL` (kept in a git-ignored `.env`), then:
 ```bash
+pip install openai
 python ingest.py --merge          # review the proposed diff
 python ingest.py --merge --yes    # apply added/changed entries after review
 ```
