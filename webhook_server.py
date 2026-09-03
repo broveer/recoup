@@ -8,6 +8,7 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
 
+import json
 import os
 from datetime import datetime
 from typing import Dict, Any, List, Optional
@@ -17,6 +18,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from rich.console import Console
 
+import playbook
 from models import (
     FailedPaymentContext,
     AgentDecision,
@@ -31,8 +33,10 @@ from policy import PolicyGuardrailEngine
 from agent import RecoveryAgent
 from razorpay_client import RazorpayClient, RazorpayPaymentLinkResponse
 
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+
 console = Console(force_terminal=True, safe_box=True)
-app = FastAPI(title="Recoup - Razorpay AI Revenue Recovery Engine", version="0.4.0")
+app = FastAPI(title="Recoup - Razorpay AI Revenue Recovery Engine", version="0.7.0")
 
 # Mount Static UI
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -55,22 +59,70 @@ AUDIT_LOGS: List[Dict[str, Any]] = []
 
 
 def map_razorpay_error_to_taxonomy(error_code_str: str, error_desc: str) -> tuple[FailureCategory, FailureCode]:
-    """Maps Razorpay webhook error strings to Recoup taxonomy."""
-    code_lower = (error_code_str or "").lower()
-    desc_lower = (error_desc or "").lower()
+    """Maps Razorpay webhook error strings (error_code / error_reason / description) to the
+    Recoup v0.7.0 taxonomy. Ordered most-specific first."""
+    t = f"{error_code_str or ''} {error_desc or ''}".lower()
 
-    if "bank_downtime" in code_lower or "gateway" in code_lower or "timed_out" in code_lower or "network" in desc_lower:
+    def has(*needles: str) -> bool:
+        return all(n in t for n in needles)
+
+    # --- Mandate / AutoPay / eNACH ---
+    if has("pre", "debit") or has("pre-debit") or ("notification" in t and "mandate" in t):
+        return FailureCategory.MANDATE_LIFECYCLE, FailureCode.PRE_DEBIT_NOTIFICATION_MISSING
+    if "mandate" in t and ("pause" in t or "hold" in t):
+        return FailureCategory.MANDATE_LIFECYCLE, FailureCode.MANDATE_PAUSED
+    if ("mandate" in t or "autopay" in t or "e-mandate" in t or "emandate" in t) and ("amount" in t and "limit" in t or "max" in t):
+        return FailureCategory.MANDATE_LIFECYCLE, FailureCode.MANDATE_AMOUNT_LIMIT_EXCEEDED
+    if "mandate" in t and ("not active" in t or "revoked" in t or "cancelled" in t or "inactive" in t or "not found" in t):
+        return FailureCategory.MANDATE_LIFECYCLE, FailureCode.MANDATE_NOT_ACTIVE
+
+    # --- RBI card-on-file tokenisation ---
+    if "token" in t and ("expired" in t or "invalid" in t or "not found" in t):
+        return FailureCategory.COMPLIANCE_TOKENIZATION, FailureCode.TOKEN_EXPIRED_OR_INVALID
+    if "token" in t or "tokeni" in t or "cof" in t:
+        return FailureCategory.COMPLIANCE_TOKENIZATION, FailureCode.TOKENIZATION_FAILED
+
+    # --- UPI limits ---
+    if "upi" in t and ("new user" in t or "24 h" in t or "24h" in t or "cooling" in t):
+        return FailureCategory.LIMIT_EXCEEDED, FailureCode.UPI_NEW_USER_LIMIT
+    if ("daily" in t or "per day" in t or "count" in t) and ("limit" in t or "exceed" in t):
+        return FailureCategory.LIMIT_EXCEEDED, FailureCode.UPI_DAILY_LIMIT
+    if "upi" in t and ("limit" in t or "exceed" in t):
+        return FailureCategory.LIMIT_EXCEEDED, FailureCode.UPI_PER_TXN_LIMIT
+
+    # --- UPI auth / collect / PIN ---
+    if ("collect" in t) and ("expire" in t or "timed" in t or "declined" in t):
+        return FailureCategory.AUTHENTICATION_DROP, FailureCode.UPI_COLLECT_EXPIRED
+    if ("mpin" in t or ("upi" in t and "pin" in t)) and ("attempt" in t or "incorrect" in t or "wrong" in t or "exceed" in t or "lock" in t):
+        return FailureCategory.AUTHENTICATION_DROP, FailureCode.UPI_MPIN_ATTEMPTS_EXCEEDED
+
+    # --- PSP app availability (payer app down, bank healthy) ---
+    if ("psp" in t or "app" in t) and ("down" in t or "unavailable" in t or "not responding" in t or "unreachable" in t):
+        return FailureCategory.PSP_UNAVAILABLE, FailureCode.PSP_APP_DOWN
+
+    # --- Card controls ---
+    if "international" in t or "cross border" in t or "cross-border" in t:
+        return FailureCategory.METHOD_RESTRICTION, FailureCode.INTERNATIONAL_TXN_BLOCKED
+    if ("not enabled" in t or "disabled" in t or "not allowed" in t) and ("online" in t or "ecom" in t or "e-commerce" in t or "card" in t):
+        return FailureCategory.METHOD_RESTRICTION, FailureCode.CARD_NOT_ENABLED_ONLINE
+
+    # --- Original taxonomy ---
+    if "bank_downtime" in t or "gateway" in t or "timed_out" in t or "timeout" in t or "network" in t:
         return FailureCategory.TRANSIENT_TECHNICAL, FailureCode.BANK_DOWNTIME
-    elif "otp" in code_lower or "cancelled" in code_lower or "3ds" in desc_lower or "cancelled" in desc_lower:
-        return FailureCategory.AUTHENTICATION_DROP, FailureCode.OTP_EXPIRED
-    elif "insufficient" in code_lower or "balance" in code_lower or "low_balance" in desc_lower:
+    if "insufficient" in t or "low balance" in t or "low_balance" in t or ("balance" in t and "insufficient" in t):
         return FailureCategory.CUSTOMER_LIQUIDITY, FailureCode.INSUFFICIENT_FUNDS
-    elif "expired" in code_lower or "lost" in code_lower or "stolen" in code_lower or "closed" in code_lower:
+    if "expired" in t or "lost" in t or "stolen" in t or "pick up" in t or "pick-up" in t or "account closed" in t or "closed" in t:
         return FailureCategory.HARD_DECLINE, FailureCode.CARD_EXPIRED
-    elif "limit" in code_lower or "international" in code_lower:
-        return FailureCategory.METHOD_RESTRICTION, FailureCode.CARD_LIMIT_EXCEEDED
-    else:
+    if "fraud" in t or "risk" in t or "velocity" in t or "suspicious" in t:
+        return FailureCategory.RISK_COMPLIANCE, FailureCode.SUSPECTED_FRAUD
+    if "otp" in t or "3ds" in t or "authentication" in t:
+        return FailureCategory.AUTHENTICATION_DROP, FailureCode.OTP_EXPIRED
+    if "cancel" in t:
         return FailureCategory.AUTHENTICATION_DROP, FailureCode.PAYMENT_CANCELLED_BY_USER
+    if "limit" in t:
+        return FailureCategory.METHOD_RESTRICTION, FailureCode.CARD_LIMIT_EXCEEDED
+
+    return FailureCategory.AUTHENTICATION_DROP, FailureCode.PAYMENT_CANCELLED_BY_USER
 
 
 @app.get("/health")
@@ -78,8 +130,10 @@ def health():
     return {
         "status": "healthy",
         "service": "Recoup AI Revenue Recovery Engine",
-        "version": "0.3.0",
+        "version": "0.7.0",
         "model": agent.model_name,
+        "knowledge_base": playbook.playbook_meta().get("schema_version"),
+        "playbook_entries": len(playbook.all_entries()),
         "razorpay_live_keys": razorpay_client.has_credentials,
     }
 
@@ -157,9 +211,11 @@ async def handle_razorpay_webhook(request: Request):
     console.print(f"\n[bold yellow]⚡ INCOMING WEBHOOK:[/bold yellow] [bold white]{tx_id}[/bold white] | [cyan]₹{amount_inr:,.2f}[/cyan] ({cust_name})")
     console.print(f"[dim]Razorpay Error: {err_code} | {err_desc}[/dim]")
 
-    # 2. AI Reasoning
+    # 2. AI Reasoning (retrieval-augmented with the curated playbook)
     decision: AgentDecision = agent.decide(context)
-    console.print(f"🤖 [bold green]AI Recommendation:[/bold green] {decision.recommended_action.value} (Likelihood: {decision.recovery_likelihood_pct}%)")
+    _kb = f"grounded:{decision.playbook_entry_used}" if decision.knowledge_grounded else "ungrounded"
+    console.print(f"🤖 [bold green]AI Recommendation:[/bold green] {decision.recommended_action.value} "
+                  f"(Likelihood: {decision.recovery_likelihood_pct}%) [dim]{_kb}[/dim]")
 
     # 3. Policy Guardrail Validation
     verdict: PolicyVerdict = PolicyGuardrailEngine.validate(context, decision)
@@ -230,6 +286,9 @@ async def handle_razorpay_webhook(request: Request):
         "customer_name": cust_name,
         "amount_inr": amount_inr,
         "error_code": failure_code.value,
+        "failure_category": category.value,
+        "knowledge_grounded": decision.knowledge_grounded,
+        "playbook_entry_used": decision.playbook_entry_used,
         "ai_decision": decision.model_dump(mode="json"),
         "policy_verdict": verdict.model_dump(mode="json"),
         "action_execution": action_result,
@@ -241,6 +300,10 @@ async def handle_razorpay_webhook(request: Request):
         "transaction_id": tx_id,
         "customer_name": cust_name,
         "amount_inr": amount_inr,
+        "failure_category": category.value,
+        "error_code": failure_code.value,
+        "knowledge_grounded": decision.knowledge_grounded,
+        "playbook_entry_used": decision.playbook_entry_used,
         "ai_recommendation": decision.recommended_action.value,
         "enforced_action": verdict.enforced_action.value,
         "execution": action_result,
@@ -291,39 +354,46 @@ def resolve_escalation(tx_id: str, request_data: Dict[str, Any]):
     return {"status": "not_found", "message": f"Transaction {tx_id} not found in active audit records."}
 
 
+_BENCHMARK_FALLBACK = {
+    "note": "Run `RECOUP_DISABLE_LLM=1 python benchmark.py` to (re)generate data/benchmark_summary.json.",
+    "cohort_size": 200,
+    "arms": {
+        "baseline": {"recovery_rate_pct": 34.5, "policy_violations": 38},
+        "ai_nokb": {"recovery_rate_pct": 54.5, "policy_violations": 7},
+        "ai_kb": {"recovery_rate_pct": 58.5, "policy_violations": 7},
+    },
+    "kb_lift": {"recovery_rate_points": 4.0, "extra_transactions": 8},
+    "vs_baseline": {"recovery_rate_points": 24.0},
+}
+
+
 @app.get("/api/benchmark-summary")
 def get_benchmark_summary():
+    """Serves the machine-readable output of the last `python benchmark.py` run."""
+    path = os.path.join(DATA_DIR, "benchmark_summary.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return _BENCHMARK_FALLBACK
+
+
+@app.get("/api/playbook")
+def get_playbook(code: Optional[str] = None):
+    """The curated recovery knowledge base that grounds every AI decision.
+
+    Pass ?code=<failure_code> for a single entry; otherwise returns metadata,
+    a taxonomy-coverage report, and all entries.
+    """
+    if code:
+        entry = playbook.lookup(code)
+        if not entry:
+            raise HTTPException(status_code=404, detail=f"No playbook entry for '{code}'")
+        return entry
     return {
-        "cohort_size": 100,
-        "total_at_risk_inr": 2021543.25,
-        "baseline": {
-            "recovered_count": 40,
-            "recovery_rate_pct": 40.0,
-            "gross_recovered_inr": 1587156.81,
-            "friction_costs_inr": 279.20,
-            "net_recovered_inr": 1586877.61,
-            "policy_violations": 12,
-        },
-        "ai_agent": {
-            "recovered_count": 74,
-            "recovery_rate_pct": 74.0,
-            "gross_recovered_inr": 1744816.78,
-            "friction_costs_inr": 243.20,
-            "net_recovered_inr": 1744573.58,
-            "policy_violations": 0,
-        },
-        "lift": {
-            "transactions_lift": 34,
-            "recovery_rate_lift_pct": 34.0,
-            "net_revenue_lift_inr": 157695.97,
-            "net_revenue_lift_pct": 9.94,
-        },
-        "rail_breakdown": [
-            {"rail": "UPI Intent & Autopay", "baseline_rate": "48%", "ai_rate": "82%", "lift": "+34%"},
-            {"rail": "Credit & Debit Cards", "baseline_rate": "38%", "ai_rate": "72%", "lift": "+34%"},
-            {"rail": "Recurring Mandates (eNACH)", "baseline_rate": "30%", "ai_rate": "65%", "lift": "+35%"},
-            {"rail": "Corporate Netbanking", "baseline_rate": "15%", "ai_rate": "80%", "lift": "+65%"},
-        ]
+        "meta": playbook.playbook_meta(),
+        "coverage": playbook.coverage_report([c.value for c in FailureCode]),
+        "entries": playbook.all_entries(),
     }
 
 

@@ -21,6 +21,10 @@ MAX_RETRIES_BY_CATEGORY = {
     FailureCategory.HARD_DECLINE: 0,        # Strict 0 retries on invalid/stolen cards
     FailureCategory.RISK_COMPLIANCE: 0,      # Suspicious transactions require human review
     FailureCategory.HIGH_VALUE_AMBIGUITY: 1,
+    FailureCategory.MANDATE_LIFECYCLE: 1,        # Dead/paused mandates need customer re-auth, not blind retry
+    FailureCategory.LIMIT_EXCEEDED: 1,          # Same amount on same rail will always fail; switch method
+    FailureCategory.COMPLIANCE_TOKENIZATION: 1,  # Broken token never recovers on retry; re-consent needed
+    FailureCategory.PSP_UNAVAILABLE: 2,         # Transient — retry via alternate PSP / rail
 }
 
 HIGH_VALUE_THRESHOLD_INR = 50000.0  # Transactions >= ₹50,000 require human escalation
@@ -94,6 +98,55 @@ class PolicyGuardrailEngine:
                     applied_rule="RULE_RISK_COMPLIANCE_HOLD",
                     current_retry_count=context.retry_count,
                     max_retries_allowed=0,
+                )
+
+        # Rule 6: Mandate Lifecycle Integrity — a dead / paused / over-limit mandate cannot be silently retried
+        if context.failure_category == FailureCategory.MANDATE_LIFECYCLE and context.error_code in (
+            FailureCode.MANDATE_NOT_ACTIVE,
+            FailureCode.MANDATE_PAUSED,
+            FailureCode.MANDATE_AMOUNT_LIMIT_EXCEEDED,
+        ):
+            if decision.recommended_action in (RecoveryActionType.DYNAMIC_BACKOFF_RETRY, RecoveryActionType.SMART_DUNNING_SCHEDULE):
+                violations.append(
+                    f"Mandate is not debitable ({context.error_code.value}). Silent retry / auto-dunning burns bank hits and cannot succeed until the customer re-authorises."
+                )
+                return PolicyVerdict(
+                    is_permitted=False,
+                    violation_reasons=violations,
+                    enforced_action=RecoveryActionType.ALTERNATIVE_PAYMENT_LINK,
+                    applied_rule="RULE_MANDATE_REAUTH_REQUIRED",
+                    current_retry_count=context.retry_count,
+                    max_retries_allowed=max_allowed_retries,
+                )
+
+        # Rule 7: RBI e-Mandate Pre-Debit Notification — 24h notice is legally required before a recurring debit
+        if context.error_code == FailureCode.PRE_DEBIT_NOTIFICATION_MISSING:
+            if decision.recommended_action == RecoveryActionType.DYNAMIC_BACKOFF_RETRY:
+                violations.append(
+                    "RBI e-mandate rules require a pre-debit notification to the customer at least 24h before debit. Immediate retry is non-compliant."
+                )
+                return PolicyVerdict(
+                    is_permitted=False,
+                    violation_reasons=violations,
+                    enforced_action=RecoveryActionType.SMART_DUNNING_SCHEDULE,
+                    applied_rule="RULE_PRE_DEBIT_NOTIFICATION_REQUIRED",
+                    current_retry_count=context.retry_count,
+                    max_retries_allowed=max_allowed_retries,
+                )
+
+        # Rule 8: RBI Card-on-File Tokenisation Compliance — a missing / invalid token never recovers on retry
+        if context.failure_category == FailureCategory.COMPLIANCE_TOKENIZATION:
+            if decision.recommended_action in (RecoveryActionType.DYNAMIC_BACKOFF_RETRY, RecoveryActionType.SMART_DUNNING_SCHEDULE):
+                violations.append(
+                    f"Card-on-file token is missing or invalid ({context.error_code.value}). Retrying the stored token will always fail; customer must re-enter the card and re-consent to tokenisation."
+                )
+                return PolicyVerdict(
+                    is_permitted=False,
+                    violation_reasons=violations,
+                    enforced_action=RecoveryActionType.ALTERNATIVE_PAYMENT_LINK,
+                    applied_rule="RULE_RETOKENIZATION_REQUIRED",
+                    current_retry_count=context.retry_count,
+                    max_retries_allowed=max_allowed_retries,
                 )
 
         # If all checks pass

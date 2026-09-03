@@ -67,6 +67,65 @@ class RuleBasedBaselineEngine:
                 decision_model="rule-based-baseline",
             )
 
+        # 3b. Mandate debit failures - static table blindly schedules a 24h retry (no lifecycle awareness)
+        elif code in (
+            FailureCode.MANDATE_NOT_ACTIVE,
+            FailureCode.MANDATE_PAUSED,
+            FailureCode.MANDATE_AMOUNT_LIMIT_EXCEEDED,
+            FailureCode.PRE_DEBIT_NOTIFICATION_MISSING,
+        ):
+            return AgentDecision(
+                transaction_id=context.transaction_id,
+                recommended_action=RecoveryActionType.SMART_DUNNING_SCHEDULE,
+                recovery_likelihood_pct=35.0,
+                confidence_score=0.65,
+                backoff_seconds=86400,
+                channel="email",
+                customer_message="Your scheduled payment failed. We will retry the auto-debit in 24 hours.",
+                reasoning_summary="Rule table match: mandate debit failure mapped to standard 24-hour retry.",
+                requires_human_approval=False,
+                decision_model="rule-based-baseline",
+            )
+
+        # 3c. Card-on-file token failures - static table retries the stored token
+        elif code in (FailureCode.TOKENIZATION_FAILED, FailureCode.TOKEN_EXPIRED_OR_INVALID):
+            return AgentDecision(
+                transaction_id=context.transaction_id,
+                recommended_action=RecoveryActionType.DYNAMIC_BACKOFF_RETRY,
+                recovery_likelihood_pct=30.0,
+                confidence_score=0.55,
+                backoff_seconds=21600,
+                channel="silent_retry",
+                customer_message=None,
+                reasoning_summary="Rule table match: card token error mapped to standard 6-hour retry.",
+                requires_human_approval=False,
+                decision_model="rule-based-baseline",
+            )
+
+        # 3d. UPI limits, PSP outages, card controls - generic dunning email (no nuance)
+        elif code in (
+            FailureCode.UPI_PER_TXN_LIMIT,
+            FailureCode.UPI_DAILY_LIMIT,
+            FailureCode.UPI_NEW_USER_LIMIT,
+            FailureCode.UPI_COLLECT_EXPIRED,
+            FailureCode.UPI_MPIN_ATTEMPTS_EXCEEDED,
+            FailureCode.PSP_APP_DOWN,
+            FailureCode.CARD_NOT_ENABLED_ONLINE,
+            FailureCode.INTERNATIONAL_TXN_BLOCKED,
+        ):
+            return AgentDecision(
+                transaction_id=context.transaction_id,
+                recommended_action=RecoveryActionType.ALTERNATIVE_PAYMENT_LINK,
+                recovery_likelihood_pct=32.0,
+                confidence_score=0.60,
+                backoff_seconds=0,
+                channel="email",
+                customer_message=f"Your payment of ₹{context.amount_inr:,.2f} did not go through. Please try again: https://rzp.io/l/dunning",
+                reasoning_summary="Rule table match: UPI/card restriction mapped to generic payment link email.",
+                requires_human_approval=False,
+                decision_model="rule-based-baseline",
+            )
+
         # 4. Hard Declines (Expired / Closed / Stolen)
         elif code in (FailureCode.CARD_EXPIRED, FailureCode.ACCOUNT_CLOSED, FailureCode.LOST_OR_STOLEN_CARD):
             return AgentDecision(

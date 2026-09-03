@@ -1,0 +1,89 @@
+{
+  "schema": "recoup.benchmark/0.7.0",
+  "generated_at": "2026-09-04T00:30:19",
+  "dataset_file": "eval_cohort_200.json",
+  "decisioning_mode": "heuristic (RECOUP_DISABLE_LLM=1)",
+  "cohort_size": 200,
+  "total_at_risk_inr": 4071805.45,
+  "arms": {
+    "baseline": {
+      "recovered_count": 69,
+      "recovery_rate_pct": 34.5,
+      "gross_recovered_inr": 2728593.25,
+      "friction_costs_inr": 386.0,
+      "net_recovered_inr": 2728207.25,
+      "policy_violations": 38,
+      "human_escalations": 18,
+      "hard_stops": 28
+    },
+    "ai_nokb": {
+      "recovered_count": 109,
+      "recovery_rate_pct": 54.5,
+      "gross_recovered_inr": 2943688.21,
+      "friction_costs_inr": 284.8,
+      "net_recovered_inr": 2943403.41,
+      "policy_violations": 7,
+      "human_escalations": 44,
+      "hard_stops": 28
+    },
+    "ai_kb": {
+      "recovered_count": 117,
+      "recovery_rate_pct": 58.5,
+      "gross_recovered_inr": 3023354.26,
+      "friction_costs_inr": 352.0,
+      "net_recovered_inr": 3023002.26,
+      "policy_violations": 7,
+      "human_escalations": 44,
+      "hard_stops": 28
+    }
+  },
+  "kb_lift": {
+    "recovery_rate_points": 4.0,
+    "extra_transactions": 8,
+    "net_revenue_inr": 79598.85,
+    "net_revenue_pct": 2.7,
+    "violations_removed": 0
+  },
+  "vs_baseline": {
+    "recovery_rate_points": 24.0,
+    "net_revenue_inr": 294795.01,
+    "net_revenue_pct": 10.8
+  },
+  "rail_breakdown": [
+    {
+      "rail": "Cards",
+      "attempts": 62,
+      "baseline_rate_pct": 30.6,
+      "ai_rate_pct": 41.9,
+      "lift_pts": 11.3
+    },
+    {
+      "rail": "Mandates (eNACH)",
+      "attempts": 17,
+      "baseline_rate_pct": 35.3,
+      "ai_rate_pct": 52.9,
+      "lift_pts": 17.6
+    },
+    {
+      "rail": "Netbanking",
+      "attempts": 27,
+      "baseline_rate_pct": 63.0,
+      "ai_rate_pct": 81.5,
+      "lift_pts": 18.5
+    },
+    {
+      "rail": "UPI",
+      "attempts": 72,
+      "baseline_rate_pct": 30.6,
+      "ai_rate_pct": 65.3,
+      "lift_pts": 34.7
+    },
+    {
+      "rail": "UPI AutoPay",
+      "attempts": 22,
+      "baseline_rate_pct": 22.7,
+      "ai_rate_pct": 59.1,
+      "lift_pts": 36.4
+    }
+  ]
+}

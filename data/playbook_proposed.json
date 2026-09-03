@@ -1,0 +1,716 @@
+{
+  "schema_version": "0.7.0",
+  "generated_at": "2026-09-04",
+  "curator": "offline-stub",
+  "sources_ingested": [
+    "npci_upi.md",
+    "razorpay_error_reasons.md",
+    "rbi_emandate_tokenization.md"
+  ],
+  "entries_per_source": {
+    "npci_upi.md": 10,
+    "razorpay_error_reasons.md": 14,
+    "rbi_emandate_tokenization.md": 9
+  },
+  "cross_verified_codes": [
+    "bank_downtime",
+    "international_txn_blocked",
+    "mandate_amount_limit_exceeded",
+    "mandate_not_active",
+    "psp_app_down",
+    "token_expired_or_invalid",
+    "tokenization_failed"
+  ],
+  "entries": {
+    "bank_downtime": {
+      "failure_code": "bank_downtime",
+      "failure_category": "transient_technical",
+      "display_name": "Issuing bank / NPCI switch downtime",
+      "root_cause": "The issuing bank core or the NPCI switch timed out while routing the transaction. The instrument and the customer are fine; this is infrastructure unavailability.",
+      "is_retryable": true,
+      "retry_guidance": "Retry during the bank's off-peak window. Avoid immediate hammering; a single well-timed retry converts best.",
+      "recommended_action": "dynamic_backoff_retry",
+      "customer_explanation": "Your bank was briefly unreachable. Your money is safe and nothing was charged. We will retry automatically shortly.",
+      "agent_notes": "Backoff 20-40 min. If the bank appears on a known downtime list, prefer a method-switch nudge instead of waiting.",
+      "confidence": "high",
+      "action_agreement": {
+        "dynamic_backoff_retry": 2
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        },
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "insufficient_funds": {
+      "failure_code": "insufficient_funds",
+      "failure_category": "customer_liquidity",
+      "display_name": "Insufficient funds / low balance",
+      "root_cause": "The account balance was below the transaction amount at the time of the debit. Common on subscription and mandate debits that hit before payday.",
+      "is_retryable": true,
+      "retry_guidance": "Retry on a liquidity-aligned date (salary day: 1st or last working day of the month), not a blind 24h loop.",
+      "recommended_action": "smart_dunning_schedule",
+      "customer_explanation": "We could not collect the payment because the balance was low. No penalty was applied. We will retry around your next salary date, or you can pay now with the link below.",
+      "agent_notes": "Schedule to 1st / last working day 09:00 IST. Attach a lightweight payment link as the fast path.",
+      "confidence": "high",
+      "action_agreement": {
+        "smart_dunning_schedule": 1
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "upi_collect_expired": {
+      "failure_code": "upi_collect_expired",
+      "failure_category": "authentication_drop",
+      "display_name": "UPI collect request expired",
+      "root_cause": "UPI collect requests carry a short approval window set by the PSP. The payer did not approve the pull request in their UPI app before it lapsed. No debit occurred.",
+      "is_retryable": true,
+      "retry_guidance": "Do not re-send another collect. Collect requests have structurally low conversion; switch to UPI intent / QR.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "Your collect request timed out before you approved it in your UPI app. Nothing was charged. Tap the link to pay instantly with UPI - no approval wait.",
+      "agent_notes": "Always prefer UPI intent or a dynamic QR over re-issuing a collect. WhatsApp delivery.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 1
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "upi_per_txn_limit": {
+      "failure_code": "upi_per_txn_limit",
+      "failure_category": "limit_exceeded",
+      "display_name": "UPI per-transaction limit exceeded",
+      "root_cause": "The amount exceeds the applicable NPCI per-transaction UPI ceiling - around Rs 1,00,000 for most merchant categories, with higher ceilings (up to Rs 2,00,000 / Rs 5,00,000) only for specific verified categories such as capital markets, insurance, and education/healthcare. The customer's bank may also enforce a lower per-transaction cap.",
+      "is_retryable": false,
+      "retry_guidance": "The same amount on the same rail will always fail. Never schedule silent retries for this code.",
+      "recommended_action": "method_switch_nudge",
+      "customer_explanation": "UPI caps a single payment at Rs 1 lakh, and your bank may set it lower. Pay by netbanking or card for this amount, or split it into two UPI payments.",
+      "agent_notes": "If amount is under ~2x the cap, offer split-UPI; otherwise nudge netbanking/card. Never retry unchanged.",
+      "confidence": "high",
+      "action_agreement": {
+        "method_switch_nudge": 1
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "upi_daily_limit": {
+      "failure_code": "upi_daily_limit",
+      "failure_category": "limit_exceeded",
+      "display_name": "UPI daily limit reached",
+      "root_cause": "The customer has hit their bank's or their UPI app's cumulative daily limit - by amount or by transaction count (NPCI lets banks/apps cap daily UPI count, commonly in the 10-20 range).",
+      "is_retryable": true,
+      "retry_guidance": "The window resets at end of day. A retry just after midnight IST is reasonable; offer an alternate rail as the immediate path.",
+      "recommended_action": "method_switch_nudge",
+      "customer_explanation": "You have reached today's UPI limit on this app or bank. It resets tomorrow - we can retry then - or pay now with another bank account or a card.",
+      "agent_notes": "If the AI chooses to schedule, target ~00:30 next day. Prefer offering alternate rail now.",
+      "confidence": "medium",
+      "action_agreement": {
+        "method_switch_nudge": 1
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "upi_new_user_limit": {
+      "failure_code": "upi_new_user_limit",
+      "failure_category": "limit_exceeded",
+      "display_name": "New UPI user 24h cooling limit",
+      "root_cause": "NPCI risk rule: for roughly the first 24 hours after a customer registers a new UPI ID or links a new bank account, total UPI transfers are capped (commonly Rs 5,000). This is a fraud-containment cooling period, not a permanent restriction.",
+      "is_retryable": true,
+      "retry_guidance": "Clears itself after the cooling window. Do not escalate. Offer an alternate rail for anything urgent.",
+      "recommended_action": "method_switch_nudge",
+      "customer_explanation": "New UPI accounts have a Rs 5,000 limit for the first 24 hours as a security measure. Use a card or netbanking now, or retry on UPI after the cooling period.",
+      "agent_notes": "Detect via customer age-on-rail if available. Self-clearing - never route to a human.",
+      "confidence": "medium",
+      "action_agreement": {
+        "method_switch_nudge": 1
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "upi_mpin_attempts_exceeded": {
+      "failure_code": "upi_mpin_attempts_exceeded",
+      "failure_category": "authentication_drop",
+      "display_name": "UPI PIN attempts exceeded - temporary lock",
+      "root_cause": "The customer entered an incorrect UPI PIN the maximum allowed number of times (typically 3), triggering a temporary lock on UPI PIN usage for that account (often about 24 hours). The bank account itself is unaffected.",
+      "is_retryable": false,
+      "retry_guidance": "UPI on this handle is locked until the cooldown passes. Do not retry the same handle.",
+      "recommended_action": "method_switch_nudge",
+      "customer_explanation": "Too many incorrect UPI PIN attempts have locked UPI on this account for a while. Pay with a card or netbanking now, or reset your UPI PIN in your app.",
+      "agent_notes": "Suggest the UPI-PIN reset flow plus an alternate rail. Do not schedule a UPI retry.",
+      "confidence": "medium",
+      "action_agreement": {
+        "method_switch_nudge": 1
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "psp_app_down": {
+      "failure_code": "psp_app_down",
+      "failure_category": "psp_unavailable",
+      "display_name": "Payer UPI app / PSP unavailable",
+      "root_cause": "The customer's UPI app or PSP (Google Pay, PhonePe, Paytm, BHIM, etc.) was unreachable or erroring at payment time, while the underlying bank rails were healthy. Distinct from issuer-bank downtime.",
+      "is_retryable": true,
+      "retry_guidance": "Short backoff only (5-15 min), not the longer window used for bank downtime. If a second attempt fails, switch rail.",
+      "recommended_action": "dynamic_backoff_retry",
+      "customer_explanation": "Your UPI app had a temporary glitch - your bank and money are fine. Try again in a few minutes, or pay via a different UPI app or a card.",
+      "agent_notes": "Backoff 5-15 min. On repeat failure, method_switch_nudge to another PSP / rail.",
+      "confidence": "high",
+      "action_agreement": {
+        "dynamic_backoff_retry": 2
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        },
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "mandate_not_active": {
+      "failure_code": "mandate_not_active",
+      "failure_category": "mandate_lifecycle",
+      "display_name": "Mandate not active / revoked",
+      "root_cause": "The eNACH / UPI AutoPay mandate for this recurring debit is not in an active, debitable state - it was never fully authorised, was revoked by the customer, or was cancelled by the bank.",
+      "is_retryable": false,
+      "retry_guidance": "A dead mandate never recovers on retry. Silent retries burn bank hits and can flag the merchant. Policy overrides retry/dunning here.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "Your auto-pay setup is not active, so we could not debit automatically. Here is a one-time link for this cycle - you can re-enable auto-pay afterwards.",
+      "agent_notes": "One-time collection now + prompt to re-create the mandate. Do not escalate for standard tiers.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 2
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        },
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "mandate_amount_limit_exceeded": {
+      "failure_code": "mandate_amount_limit_exceeded",
+      "failure_category": "mandate_lifecycle",
+      "display_name": "Debit exceeds mandate maximum amount",
+      "root_cause": "The debit amount is higher than the maximum per-transaction amount the customer approved when creating the mandate. The bank rejects any debit above that ceiling.",
+      "is_retryable": false,
+      "retry_guidance": "The same amount will always be rejected against this mandate. Collect out-of-band and prompt a mandate update.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "This charge is higher than the limit you set on your auto-pay. Pay this one with the link below, or raise your auto-pay limit in your app.",
+      "agent_notes": "Common when a plan upgrades or usage-based billing spikes. Never retry unchanged.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 2
+      },
+      "sources": [
+        {
+          "authority": "NPCI",
+          "title": "npci_upi.md",
+          "tier": "authoritative",
+          "url": "https://www.npci.org.in/what-we-do/upi/product-overview",
+          "retrieved": "2026-09-04"
+        },
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "gateway_technical_error": {
+      "failure_code": "gateway_technical_error",
+      "failure_category": "transient_technical",
+      "display_name": "Gateway / aggregator technical error",
+      "root_cause": "An upstream error between the gateway and the aggregator/network interrupted processing before authorisation completed.",
+      "is_retryable": true,
+      "retry_guidance": "Safe to retry after a short backoff. Confirm the earlier attempt did not silently succeed before re-charging.",
+      "recommended_action": "dynamic_backoff_retry",
+      "customer_explanation": "A temporary technical glitch stopped your payment going through. Nothing was charged. We are retrying it for you.",
+      "agent_notes": "Backoff 10-30 min. De-duplicate against the original transaction id.",
+      "confidence": "high",
+      "action_agreement": {
+        "dynamic_backoff_retry": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "payment_timed_out": {
+      "failure_code": "payment_timed_out",
+      "failure_category": "transient_technical",
+      "display_name": "Payment timed out",
+      "root_cause": "An upstream leg (gateway to aggregator to network) exceeded its timeout before authorisation was confirmed. This is infrastructure latency, not a customer or instrument problem. No debit was confirmed.",
+      "is_retryable": true,
+      "retry_guidance": "Safe to retry after a short off-peak backoff once the earlier attempt is confirmed not to have settled. If the customer is still on-session, a fresh 1-click link is a good parallel path.",
+      "recommended_action": "dynamic_backoff_retry",
+      "customer_explanation": "Your payment timed out before it finished, and nothing was charged. We are retrying it for you; you can also complete it now via the link.",
+      "agent_notes": "De-duplicate against the original transaction id before re-charging. Backoff 10-20 min.",
+      "confidence": "high",
+      "action_agreement": {
+        "dynamic_backoff_retry": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "invalid_otp": {
+      "failure_code": "invalid_otp",
+      "failure_category": "authentication_drop",
+      "display_name": "Incorrect OTP entered",
+      "root_cause": "The customer entered an incorrect OTP one or more times and the authentication step failed. The card/account is valid.",
+      "is_retryable": true,
+      "retry_guidance": "Do not silently retry — authentication needs the customer present. Offer a friction-free re-attempt.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "The OTP entered did not match, so the payment could not be verified. Nothing was charged. Use the link below — or pay via UPI to skip OTP entirely.",
+      "agent_notes": "Nudge UPI intent (no OTP). WhatsApp channel.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "otp_expired": {
+      "failure_code": "otp_expired",
+      "failure_category": "authentication_drop",
+      "display_name": "OTP / 3DS session expired",
+      "root_cause": "The 3DS / OTP session lapsed (commonly ~300s) before the customer entered the code. No debit occurred.",
+      "is_retryable": true,
+      "retry_guidance": "Re-initiate with the customer present. A background retry cannot pass authentication.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "The verification step expired before the code was entered. Nothing was charged. Complete it in one click below, or pay via UPI to skip OTP.",
+      "agent_notes": "Prefer UPI intent. Send immediately while intent is warm.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "payment_cancelled_by_user": {
+      "failure_code": "payment_cancelled_by_user",
+      "failure_category": "authentication_drop",
+      "display_name": "Customer cancelled at authentication",
+      "root_cause": "The customer tapped cancel / back on the bank 3DS page or the UPI PIN prompt. Often hesitation, wrong app, or distraction rather than a decision not to buy.",
+      "is_retryable": true,
+      "retry_guidance": "One prompt re-attempt is reasonable; do not repeatedly nudge.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "Looks like the payment was cancelled before it completed. Nothing was charged. Here is a quick link if you would like to finish it.",
+      "agent_notes": "Single WhatsApp nudge with 1-click UPI. Respect silence after one attempt.",
+      "confidence": "medium",
+      "action_agreement": {
+        "alternative_payment_link": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "card_limit_exceeded": {
+      "failure_code": "card_limit_exceeded",
+      "failure_category": "method_restriction",
+      "display_name": "Card / netbanking transaction limit exceeded",
+      "root_cause": "The amount exceeds a per-transaction or available credit/withdrawal limit on the instrument, or a corporate netbanking single-transaction cap.",
+      "is_retryable": false,
+      "retry_guidance": "Same amount on the same instrument will fail again. Switch method or split.",
+      "recommended_action": "method_switch_nudge",
+      "customer_explanation": "This amount is above the limit on that card. Try another card, UPI, or netbanking.",
+      "agent_notes": "For high-value B2B, pair with escalation if the customer is enterprise.",
+      "confidence": "high",
+      "action_agreement": {
+        "method_switch_nudge": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "card_expired": {
+      "failure_code": "card_expired",
+      "failure_category": "hard_decline",
+      "display_name": "Card expired",
+      "root_cause": "The card's validity date has passed. It cannot authorise any transaction.",
+      "is_retryable": false,
+      "retry_guidance": "Zero retries. The instrument is permanently unusable.",
+      "recommended_action": "immediate_stop",
+      "customer_explanation": "Your card has expired. Please add a current card to continue.",
+      "agent_notes": "Send an update-payment-method link once. No dunning loop.",
+      "confidence": "high",
+      "action_agreement": {
+        "immediate_stop": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "account_closed": {
+      "failure_code": "account_closed",
+      "failure_category": "hard_decline",
+      "display_name": "Bank account closed",
+      "root_cause": "The account tied to the instrument is closed. No debit is possible.",
+      "is_retryable": false,
+      "retry_guidance": "Zero retries.",
+      "recommended_action": "immediate_stop",
+      "customer_explanation": "The bank account linked to this payment is closed. Please use a different payment method.",
+      "agent_notes": "One update-method prompt. Halt automation.",
+      "confidence": "high",
+      "action_agreement": {
+        "immediate_stop": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "lost_or_stolen_card": {
+      "failure_code": "lost_or_stolen_card",
+      "failure_category": "hard_decline",
+      "display_name": "Lost / stolen card (pick-up)",
+      "root_cause": "The issuer returned a pick-up / lost-or-stolen response. Retrying risks fraud-handling flags on the merchant.",
+      "is_retryable": false,
+      "retry_guidance": "Zero retries. Do not send payment links to the same instrument.",
+      "recommended_action": "immediate_stop",
+      "customer_explanation": "This card has been reported lost or stolen by the bank. Please use another payment method.",
+      "agent_notes": "Halt silently. Do not describe the fraud reason in customer messaging beyond 'reported by the bank'.",
+      "confidence": "high",
+      "action_agreement": {
+        "immediate_stop": 1
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "tokenization_failed": {
+      "failure_code": "tokenization_failed",
+      "failure_category": "compliance_tokenization",
+      "display_name": "Card-on-file tokenisation failed",
+      "root_cause": "Under RBI's Card-on-File Tokenisation (CoFT) rules, in force since Oct 2022, the network could not create a token for the saved card - the issuer declined the token request, or the customer did not complete the additional-factor consent. Without a token the recurring / 1-click charge cannot run.",
+      "is_retryable": false,
+      "retry_guidance": "There is nothing to retry - no valid token exists. Re-collect card details with consent, or switch rail.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "We could not securely save your card for 1-click - a bank / RBI security step did not complete. Re-enter your card once on the secure link, or pay via UPI.",
+      "agent_notes": "Offer UPI as the friction-free path. Do not retry a charge that has no token.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 2
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        },
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "token_expired_or_invalid": {
+      "failure_code": "token_expired_or_invalid",
+      "failure_category": "compliance_tokenization",
+      "display_name": "Saved card token expired / invalid",
+      "root_cause": "The stored network token for this card is no longer valid - the card was reissued with a new expiry or number, the token was deleted, or the issuer invalidated it. Retrying the same token keeps failing.",
+      "is_retryable": false,
+      "retry_guidance": "Do not retry the stale token. Prompt re-tokenisation with the customer's current card.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "The saved card on file has expired or changed. Add your current card once on the secure link and 1-click will work again.",
+      "agent_notes": "If this recurs across many customers, flag the merchant to enable network token lifecycle updates.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 2
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        },
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "international_txn_blocked": {
+      "failure_code": "international_txn_blocked",
+      "failure_category": "method_restriction",
+      "display_name": "International transactions blocked on card",
+      "root_cause": "The card has international / cross-border transactions disabled (RBI default), or the issuer blocked this cross-border attempt. Relevant when the merchant or acquirer is treated as foreign.",
+      "is_retryable": false,
+      "retry_guidance": "Confirm the transaction really is cross-border before showing this to the customer - domestic declines are sometimes misreported this way.",
+      "recommended_action": "method_switch_nudge",
+      "customer_explanation": "International transactions are switched off for this card. Enable them in your bank app, or use another card or UPI.",
+      "agent_notes": "Verify MID country. If genuinely domestic, treat as a generic issuer decline instead.",
+      "confidence": "high",
+      "action_agreement": {
+        "method_switch_nudge": 2
+      },
+      "sources": [
+        {
+          "authority": "Razorpay",
+          "title": "razorpay_error_reasons.md",
+          "tier": "authoritative",
+          "url": "https://razorpay.com/docs/errors/",
+          "retrieved": "2026-09-04"
+        },
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "suspected_fraud": {
+      "failure_code": "suspected_fraud",
+      "failure_category": "risk_compliance",
+      "display_name": "Suspected fraud / risk decline",
+      "root_cause": "The issuer or the risk engine flagged the transaction as potentially fraudulent (velocity, device, geo, or pattern signals).",
+      "is_retryable": false,
+      "retry_guidance": "Zero automated retries. Route to a human risk reviewer.",
+      "recommended_action": "escalate_to_human",
+      "customer_explanation": null,
+      "agent_notes": "Never auto-message the customer. Merchant risk team owns next contact.",
+      "confidence": "high",
+      "action_agreement": {
+        "escalate_to_human": 1
+      },
+      "sources": [
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "mandate_paused": {
+      "failure_code": "mandate_paused",
+      "failure_category": "mandate_lifecycle",
+      "display_name": "AutoPay mandate paused by customer",
+      "root_cause": "The customer has paused / put on hold the AutoPay mandate. RBI rules let customers pause and resume e-mandates at will.",
+      "is_retryable": false,
+      "retry_guidance": "Respect the pause. Do not re-attempt the mandate while it is on hold.",
+      "recommended_action": "alternative_payment_link",
+      "customer_explanation": "Your auto-pay is paused. Pay this cycle with the link below, and resume auto-pay in your app whenever you are ready.",
+      "agent_notes": "One-time link + a soft resume nudge. No retry, no escalation.",
+      "confidence": "high",
+      "action_agreement": {
+        "alternative_payment_link": 1
+      },
+      "sources": [
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "pre_debit_notification_missing": {
+      "failure_code": "pre_debit_notification_missing",
+      "failure_category": "mandate_lifecycle",
+      "display_name": "RBI pre-debit notification not sent",
+      "root_cause": "RBI's e-mandate framework requires the customer be notified at least 24 hours before each recurring debit. The mandatory pre-debit notification was not sent or not acknowledged, so the debit cannot be processed compliantly.",
+      "is_retryable": true,
+      "retry_guidance": "Retry is allowed ONLY after a compliant 24h notification. Immediate retry is a regulatory breach - policy blocks it.",
+      "recommended_action": "smart_dunning_schedule",
+      "customer_explanation": "As per RBI rules we notify you 24 hours before an auto-payment. We have sent that notice now and will attempt the payment after 24 hours.",
+      "agent_notes": "Only compliant path: send notification now -> wait >=24h -> debit. Never dynamic_backoff_retry for this code.",
+      "confidence": "high",
+      "action_agreement": {
+        "smart_dunning_schedule": 1
+      },
+      "sources": [
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    },
+    "card_not_enabled_online": {
+      "failure_code": "card_not_enabled_online",
+      "failure_category": "method_restriction",
+      "display_name": "Card not enabled for online use",
+      "root_cause": "Per RBI card-control rules, cards are issued with online / e-commerce use switched off by default. The customer has not enabled online use for this card, or has set a per-transaction limit below this amount.",
+      "is_retryable": false,
+      "retry_guidance": "Will keep failing until the customer enables online use. Offer an alternate rail immediately.",
+      "recommended_action": "method_switch_nudge",
+      "customer_explanation": "Online payments are turned off for this card in your bank app. Switch them on and check the limit, or pay now via UPI or netbanking.",
+      "agent_notes": "Very common on debit cards. Alternate rail + a one-line 'how to enable' beats waiting.",
+      "confidence": "high",
+      "action_agreement": {
+        "method_switch_nudge": 1
+      },
+      "sources": [
+        {
+          "authority": "RBI",
+          "title": "rbi_emandate_tokenization.md",
+          "tier": "authoritative",
+          "url": "https://www.rbi.org.in/Scripts/NotificationUser.aspx",
+          "retrieved": "2026-09-04"
+        }
+      ]
+    }
+  },
+  "proposed_new_codes": [
+    {
+      "suggested_code": "upi_beneficiary_bank_offline",
+      "why": "extract distinguishes payer-side vs beneficiary-side unavailability; no code captures a healthy remitter with an offline beneficiary bank",
+      "from_source": "npci_upi.md"
+    },
+    {
+      "suggested_code": "issuer_auth_server_down",
+      "why": "issuer ACS/auth server unavailable is a transient sub-case worth separating from bank_downtime",
+      "from_source": "razorpay_error_reasons.md"
+    },
+    {
+      "suggested_code": "mandate_bank_not_live_on_enach",
+      "why": "sponsor/destination bank not live on the e-mandate rail is distinct from a revoked mandate",
+      "from_source": "rbi_emandate_tokenization.md"
+    }
+  ]
+}

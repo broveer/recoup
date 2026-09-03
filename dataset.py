@@ -26,7 +26,7 @@ ARCHETYPES = [
             (FailureCode.PAYMENT_TIMED_OUT, "Gateway upstream timeout communicating with payment aggregator."),
         ],
         "methods": [PaymentMethod.UPI_INTENT, PaymentMethod.UPI_COLLECT, PaymentMethod.NETBANKING],
-        "weight": 30,  # 30% of failures
+        "weight": 22,
         "amount_range": (299.0, 8500.0),
     },
     {
@@ -35,9 +35,11 @@ ARCHETYPES = [
             (FailureCode.OTP_EXPIRED, "Customer 3DS / OTP session timed out after 300 seconds."),
             (FailureCode.INVALID_OTP, "Customer entered incorrect OTP 2 times and abandoned checkout."),
             (FailureCode.PAYMENT_CANCELLED_BY_USER, "User tapped cancel on bank 3DS / UPI PIN prompt."),
+            (FailureCode.UPI_COLLECT_EXPIRED, "UPI collect request lapsed before the payer approved it."),
+            (FailureCode.UPI_MPIN_ATTEMPTS_EXCEEDED, "Payer entered wrong UPI PIN 3 times; UPI temporarily locked."),
         ],
         "methods": [PaymentMethod.CARD_CREDIT, PaymentMethod.CARD_DEBIT, PaymentMethod.UPI_INTENT],
-        "weight": 25,  # 25% of failures
+        "weight": 18,
         "amount_range": (499.0, 12000.0),
     },
     {
@@ -46,7 +48,7 @@ ARCHETYPES = [
             (FailureCode.INSUFFICIENT_FUNDS, "Account balance insufficient for subscription debit on mandate."),
         ],
         "methods": [PaymentMethod.UPI_AUTOPAY, PaymentMethod.EMANDATE],
-        "weight": 20,  # 20% of failures (recurring subscriptions)
+        "weight": 14,  # recurring subscriptions
         "amount_range": (199.0, 4999.0),
     },
     {
@@ -57,7 +59,7 @@ ARCHETYPES = [
             (FailureCode.LOST_OR_STOLEN_CARD, "Bank returned pick-up card / stolen instrument flag."),
         ],
         "methods": [PaymentMethod.CARD_DEBIT, PaymentMethod.CARD_CREDIT],
-        "weight": 15,  # 15% of failures
+        "weight": 11,
         "amount_range": (399.0, 9500.0),
     },
     {
@@ -66,8 +68,75 @@ ARCHETYPES = [
             (FailureCode.CARD_LIMIT_EXCEEDED, "Single corporate netbanking transaction limit exceeded."),
         ],
         "methods": [PaymentMethod.NETBANKING, PaymentMethod.CARD_CREDIT],
-        "weight": 10,  # 10% of failures (high-ticket / B2B)
+        "weight": 7,  # high-ticket / B2B
         "amount_range": (55000.0, 250000.0),
+    },
+    # --- v0.7.0 expanded taxonomy: real-world Indian failure modes ---
+    {
+        "category": FailureCategory.MANDATE_LIFECYCLE,
+        "codes": [
+            (FailureCode.MANDATE_NOT_ACTIVE, "eNACH mandate revoked / not activated at sponsor bank."),
+            (FailureCode.MANDATE_PAUSED, "Customer paused UPI AutoPay mandate in PSP app."),
+            (FailureCode.PRE_DEBIT_NOTIFICATION_MISSING, "RBI-mandated 24h pre-debit notification was not delivered."),
+            (FailureCode.MANDATE_AMOUNT_LIMIT_EXCEEDED, "Debit amount exceeds the per-transaction ceiling set on the mandate."),
+        ],
+        "methods": [PaymentMethod.UPI_AUTOPAY, PaymentMethod.EMANDATE],
+        "weight": 9,
+        "amount_range": (199.0, 4999.0),
+        "consumer_only": True,
+    },
+    {
+        "category": FailureCategory.LIMIT_EXCEEDED,
+        "codes": [
+            (FailureCode.UPI_DAILY_LIMIT, "Cumulative daily UPI limit reached on payer bank / app."),
+            (FailureCode.UPI_NEW_USER_LIMIT, "New UPI user 24h cooling cap (₹5,000) breached."),
+        ],
+        "methods": [PaymentMethod.UPI_INTENT, PaymentMethod.UPI_COLLECT],
+        "weight": 6,
+        "amount_range": (2000.0, 9000.0),
+        "consumer_only": True,
+    },
+    {
+        "category": FailureCategory.LIMIT_EXCEEDED,
+        "codes": [
+            (FailureCode.UPI_PER_TXN_LIMIT, "Exceeds bank-set per-transaction UPI limit of ₹25,000."),
+        ],
+        "methods": [PaymentMethod.UPI_INTENT],
+        "weight": 3,
+        "amount_range": (26000.0, 49000.0),
+        "consumer_only": True,
+    },
+    {
+        "category": FailureCategory.COMPLIANCE_TOKENIZATION,
+        "codes": [
+            (FailureCode.TOKENIZATION_FAILED, "Network could not create a card-on-file token; AFA consent incomplete."),
+            (FailureCode.TOKEN_EXPIRED_OR_INVALID, "Saved network token invalid after card reissue."),
+        ],
+        "methods": [PaymentMethod.CARD_CREDIT, PaymentMethod.CARD_DEBIT],
+        "weight": 5,
+        "amount_range": (499.0, 6000.0),
+        "consumer_only": True,
+    },
+    {
+        "category": FailureCategory.PSP_UNAVAILABLE,
+        "codes": [
+            (FailureCode.PSP_APP_DOWN, "Payer PSP app (PhonePe / GPay / Paytm) unreachable; bank rails healthy."),
+        ],
+        "methods": [PaymentMethod.UPI_INTENT, PaymentMethod.UPI_COLLECT],
+        "weight": 3,
+        "amount_range": (199.0, 5000.0),
+        "consumer_only": True,
+    },
+    {
+        "category": FailureCategory.METHOD_RESTRICTION,
+        "codes": [
+            (FailureCode.CARD_NOT_ENABLED_ONLINE, "Online / e-commerce usage switched off on card (RBI card controls)."),
+            (FailureCode.INTERNATIONAL_TXN_BLOCKED, "International transactions disabled on card."),
+        ],
+        "methods": [PaymentMethod.CARD_DEBIT, PaymentMethod.CARD_CREDIT],
+        "weight": 2,
+        "amount_range": (499.0, 12000.0),
+        "consumer_only": True,
     },
 ]
 
@@ -113,6 +182,8 @@ def generate_cohort(size: int = 100, seed: int = 42) -> List[FailedPaymentContex
         # Pick customer profile
         if category == FailureCategory.HIGH_VALUE_AMBIGUITY or amount >= 50000.0:
             name, tier_str, cltv = random.choice([n for n in INDIAN_NAMES if n[1] == "enterprise"])
+        elif arch.get("consumer_only"):
+            name, tier_str, cltv = random.choice([n for n in INDIAN_NAMES if n[1] != "enterprise"])
         else:
             name, tier_str, cltv = random.choice(INDIAN_NAMES)
             
@@ -177,6 +248,6 @@ if __name__ == "__main__":
     dev_path = save_dataset(dev_cohort, "dev_cohort_50.json")
     print(f"Generated Dev Dataset (50 items): {dev_path}")
 
-    eval_cohort = generate_cohort(size=100, seed=202)
-    eval_path = save_dataset(eval_cohort, "eval_cohort_100.json")
-    print(f"Generated Held-Out Eval Dataset (100 items): {eval_path}")
+    eval_cohort = generate_cohort(size=200, seed=202)
+    eval_path = save_dataset(eval_cohort, "eval_cohort_200.json")
+    print(f"Generated Held-Out Eval Dataset (200 items): {eval_path}")
