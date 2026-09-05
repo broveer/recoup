@@ -3,8 +3,9 @@
 > How the hard calls were made. Each entry: the problem we hit, the options we weighed,
 > what we chose, and the trade-off we knowingly accepted.
 
-The `v0.7.0` work below is the "Knowledge-Grounded Recovery" milestone. Earlier
-milestones (`v0.1.0`–`v0.6.0`) are summarised in [README.md](README.md).
+The `v0.7.0` work below is the "Knowledge-Grounded Recovery" milestone and the substance of
+the `v1.0.0` submission tag. Earlier milestones (`v0.1.0`–`v0.6.0`) are summarised in
+[README.md](README.md).
 
 ---
 

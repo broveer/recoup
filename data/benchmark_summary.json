@@ -1,6 +1,6 @@
 {
   "schema": "recoup.benchmark/0.7.0",
-  "generated_at": "2026-09-04T00:30:19",
+  "generated_at": "2026-09-05T21:56:49",
   "dataset_file": "eval_cohort_200.json",
   "decisioning_mode": "heuristic (RECOUP_DISABLE_LLM=1)",
   "cohort_size": 200,

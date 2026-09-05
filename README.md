@@ -5,7 +5,7 @@
 
 Recoup is an AI-powered revenue recovery system for Indian payment rails (UPI, Cards, eNACH / UPI AutoPay mandates, Netbanking). It diagnoses payment failures, assesses recoverability, personalises customer recovery nudges, and validates **every** decision against strict deterministic financial guardrails.
 
-As of **`v0.7.0`**, every AI decision is **knowledge-grounded**: the agent retrieves a human-reviewed playbook entry — curated from official NPCI / RBI / Razorpay documentation — for the specific failure code before it decides. When there is no entry, it stays conservative and flags for human review instead of guessing.
+As of **`v1.0.0`**, every AI decision is **knowledge-grounded**: the agent retrieves a human-reviewed playbook entry — curated from official NPCI / RBI / Razorpay documentation — for the specific failure code before it decides. When there is no entry, it stays conservative and flags for human review instead of guessing.
 
 ---
 
@@ -17,15 +17,14 @@ Iterative daily release cycle culminating in the final submission:
 * **Day 4:** `v0.4.0` / `v0.4.1` — Interactive Neo-Brutalist Web Simulator & Dedicated Action Cards
 * **Day 5:** `v0.5.0` — VIP Human Escalation Desk, Live Comparative Benchmark Visualizer, Multi-Rail Lift Breakdown
 * **Day 6:** `v0.6.0` — WhatsApp Interactive Quick-Reply Chips (WABA Standards), Zero-Jailbreak Multi-Turn Agentic Actions
-* **Day 7 (Current):** `v0.7.0` — **Knowledge-Grounded Recovery**: 11-category / 26-code failure taxonomy, curated recovery playbook (RAG), offline Gemma curator pipeline, 3 new RBI/NPCI compliance guardrails, three-arm A/B/C benchmark
-* **Day 8–11:** `v0.8.0` → `v0.11.0` — Automated Pytest Suite, Demo Video Recording Package
-* **Day 12:** `v1.0.0` — Complete Final Submission
+* **Day 7:** `v0.7.0` — **Knowledge-Grounded Recovery**: 11-category / 26-code failure taxonomy, curated recovery playbook (RAG), offline Gemma curator pipeline, 3 new RBI/NPCI compliance guardrails, three-arm A/B/C benchmark
+* **Day 8 (Current — Final Submission):** `v1.0.0` — consolidated documentation, [ENGINEERING_JOURNAL.md](ENGINEERING_JOURNAL.md), demo recording package. The planned interim `v0.8.0`–`v0.11.0` (pytest suite, packaging) was folded into this release under the submission deadline; the pytest suite is carried as post-submission work.
 
 See **[ENGINEERING_JOURNAL.md](ENGINEERING_JOURNAL.md)** for the reasoning behind every non-obvious design decision.
 
 ---
 
-## 🏛️ v0.7.0 Architecture
+## 🏛️ Architecture
 
 ### Two model tiers — the strong model never touches live money
 
@@ -50,9 +49,9 @@ data/sources/*.md                                 POST /webhook/razorpay  (payme
                                                    /api/escalations · /api/whatsapp/interactive-action
 ```
 
-### Failure taxonomy (`v0.7.0`)
+### Failure taxonomy
 
-**11 categories / 26 error codes**, grounded in NPCI / RBI / Razorpay docs. New in `v0.7.0`:
+**11 categories / 26 error codes**, grounded in NPCI / RBI / Razorpay docs. The knowledge-grounding milestone added:
 
 | Category | Covers |
 | --- | --- |
@@ -118,7 +117,7 @@ The AI **proposes**; the policy engine **authorises or overrides**. Eight rules:
 
 ---
 
-## 📊 Results (`v0.7.0`, 200-case held-out cohort, `RECOUP_DISABLE_LLM=1` — fully reproducible)
+## 📊 Results (200-case held-out cohort, `RECOUP_DISABLE_LLM=1` — fully reproducible)
 
 | Arm | Recovery rate | Policy violations |
 | --- | --- | --- |
