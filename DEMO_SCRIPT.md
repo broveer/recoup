@@ -27,24 +27,11 @@ Two terminals; browser tab on `http://localhost:8000`.
 > RBI-mandated 24-hour notice before charging."
 
 ```bash
-python - <<'PY'
-import os; os.environ["RECOUP_DISABLE_LLM"] = "1"
-from models import *
-from agent import RecoveryAgent
-
-ctx = FailedPaymentContext(
-    transaction_id="pay_DEMO_1", order_id="o1", customer_id="c1", customer_name="Ananya Iyer",
-    amount_inr=649.0, payment_method=PaymentMethod.UPI_AUTOPAY,
-    failure_category=FailureCategory.MANDATE_LIFECYCLE,
-    error_code=FailureCode.PRE_DEBIT_NOTIFICATION_MISSING,
-    error_message="Recurring debit attempted without the mandatory 24h pre-debit notification.")
-
-d = RecoveryAgent(use_playbook=False).decide(ctx)
-print("action  :", d.recommended_action.value)
-print("grounded:", d.knowledge_grounded, "| needs human:", d.requires_human_approval)
-print("reason  :", d.reasoning_summary)
-PY
+python demo_before.py
 ```
+
+Expected: `recommended: alternative_payment_link`, `knowledge: NONE - operating on a guess`,
+`needs a human: True`.
 
 > "No knowledge base — it defaults to a generic payment link and flags for a human. It has no
 > idea this is a compliance rule with one specific correct fix."
@@ -91,29 +78,11 @@ python ingest.py --offline --merge
 ## 4. AFTER — same failure, knowledge-grounded  (~45s)
 
 ```bash
-python - <<'PY'
-import os; os.environ["RECOUP_DISABLE_LLM"] = "1"
-from models import *
-from agent import RecoveryAgent
-from policy import PolicyGuardrailEngine
-
-ctx = FailedPaymentContext(
-    transaction_id="pay_DEMO_1", order_id="o1", customer_id="c1", customer_name="Ananya Iyer",
-    amount_inr=649.0, payment_method=PaymentMethod.UPI_AUTOPAY,
-    failure_category=FailureCategory.MANDATE_LIFECYCLE,
-    error_code=FailureCode.PRE_DEBIT_NOTIFICATION_MISSING,
-    error_message="Recurring debit attempted without the mandatory 24h pre-debit notification.")
-
-d = RecoveryAgent(use_playbook=True).decide(ctx)
-print("action     :", d.recommended_action.value)
-print("grounded on:", d.playbook_entry_used)
-print("reason     :", d.reasoning_summary)
-
-bad = d.model_copy(update={"recommended_action": RecoveryActionType.DYNAMIC_BACKOFF_RETRY})
-v = PolicyGuardrailEngine.validate(ctx, bad)
-print("forced silent retry -> permitted:", v.is_permitted, "| rule:", v.applied_rule)
-PY
+python demo_after.py
 ```
+
+Expected: `recommended: smart_dunning_schedule`, `grounded on: pre_debit_notification_missing`,
+and the forced silent retry returns `permitted: False` / `rule: RULE_PRE_DEBIT_NOTIFICATION_REQUIRED`.
 
 > "Now it schedules the debit *after* the 24-hour notice — the compliant path — and cites the
 > RBI entry it used. And if the model had tried to silently retry anyway, the deterministic
